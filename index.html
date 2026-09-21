@@ -122,7 +122,6 @@
                     <p class="text-sm text-slate-500 mt-1">Programa Escuela 4.0 - Provincia de Valladolid</p>
                 </div>
 
-                <!-- FORMULARIO SIN AUTOGUARDADO (ATRIBUTOS LIMPIOS) -->
                 <form id="welcome-form" onsubmit="handleStartApp(event)" class="space-y-4 relative" autocomplete="off">
                     <div>
                         <label for="input-code" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
@@ -215,7 +214,7 @@
                             <div class="flex items-center justify-between text-xs font-semibold text-emerald-800">
                                 <span><i class="fa-solid fa-calendar-check mr-1 text-emerald-600"></i> Fechas Confirmadas:</span>
                                 <span class="text-[10px] text-slate-500 font-normal italic flex items-center">
-                                    <i class="fa-solid fa-lock text-amber-600 mr-1"></i> Modo Admin únicamente
+                                    <i class="fa-solid fa-lock text-amber-600 mr-1"></i> Modo Admin
                                 </span>
                             </div>
                             <div id="confirmed-dates-list" class="space-y-1.5"></div>
@@ -385,12 +384,6 @@
                 <h3 id="day-admin-modal-title" class="text-lg font-bold text-slate-900">Gestión del Día</h3>
                 <p id="day-admin-modal-subtitle" class="text-xs text-slate-500"></p>
             </div>
-            <div id="day-admin-block-container" class="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
-                <span id="day-admin-block-status" class="text-xs font-semibold text-slate-700">Estado</span>
-                <button id="btn-toggle-day-block" onclick="toggleBlockFromDayModal()" class="px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center space-x-1">
-                    <span id="btn-toggle-day-block-label">Bloquear</span>
-                </button>
-            </div>
             <div class="space-y-3">
                 <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center justify-between">
                     <span>Solicitudes Registradas</span>
@@ -455,9 +448,12 @@
 
     <!-- JAVASCRIPT & SUPABASE INTEGRATION -->
     <script>
-        // ¡REEMPLAZA ESTOS DOS DATOS CON LOS DE TU PROYECTO DE SUPABASE!
-        const SUPABASE_URL = 'TUS_DATOS_DE_SUPABASE_URL';
-        const SUPABASE_ANON_KEY = 'TUS_DATOS_DE_SUPABASE_ANON_KEY';
+        // =========================================================================
+        // 🔴 MODIFICA ESTAS DOS LÍNEAS CON TUS DATOS REALES DE SUPABASE:
+        // =========================================================================
+        const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+        const SUPABASE_ANON_KEY = 'TU-CLAVE-ANON-LARGA';
+        // =========================================================================
 
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -536,13 +532,20 @@
                 state.isAdminMode = true;
                 closePasswordModal();
                 showToast('Acceso de administración autorizado', 'success');
-                if (state.pendingAuthCallback) { const cb = state.pendingAuthCallback; state.pendingAuthCallback = null; cb(); }
+                if (state.pendingAuthCallback) { 
+                    const cb = state.pendingAuthCallback; 
+                    state.pendingAuthCallback = null; 
+                    cb(); 
+                }
             } else {
                 document.getElementById('password-error').classList.remove('hidden');
             }
         }
 
-        function closePasswordModal() { document.getElementById('password-modal').classList.add('hidden'); }
+        function closePasswordModal() { 
+            document.getElementById('password-modal').classList.add('hidden'); 
+            state.pendingAuthCallback = null;
+        }
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
@@ -640,6 +643,9 @@
                 adminContainer.classList.add('hidden'); adminIndicator.classList.add('hidden');
             }
 
+            // Actualizar selector de meses dentro del panel de administración si está abierto
+            renderAdminMonthsGrid();
+
             const container = document.getElementById('calendar-days');
             container.innerHTML = '';
             const firstDay = new Date(year, month, 1);
@@ -707,7 +713,7 @@
             document.getElementById('btn-confirm-reservation').disabled = count === 0 || !state.currentUser;
             document.getElementById('btn-clear-selection').classList.toggle('hidden', count === 0);
             list.innerHTML = count === 0 ? '<p class="text-xs text-slate-400 text-center py-4 italic">Haz clic en las fechas.</p>' : '';
-            state.selectedDates.forEach((d, i) => {
+            state.selectedDates.forEach((d) => {
                 list.innerHTML += `<div class="flex justify-between p-2 bg-brand-50 border border-brand-200 rounded-xl text-xs font-semibold text-brand-900"><span>${formatDateSpanishLong(d)}</span><button onclick="toggleSelectedDate('${d}')"><i class="fa-solid fa-xmark"></i></button></div>`;
             });
         }
@@ -715,11 +721,9 @@
         function toggleSelectedDate(d) { state.selectedDates = state.selectedDates.filter(x => x !== d); updateSelectedDatesList(); renderCalendar(); }
         function clearSelectedDates() { state.selectedDates = []; updateSelectedDatesList(); renderCalendar(); }
 
-        // FUNCIÓN CLAVE MEZCLADA CON SUPABASE PARA SINCRONIZAR RESERVAS CONSECUTIVAS
         async function submitReservation() {
             if (!state.currentUser || state.selectedDates.length === 0) return;
 
-            // Descarga lo último de la nube antes de añadir para no pisar reservas simultáneas
             await loadStateFromStorage();
 
             const newReservation = {
@@ -768,8 +772,10 @@
             document.getElementById('day-admin-modal-title').textContent = `Día: ${formatDateSpanish(d)}`;
             const list = document.getElementById('day-admin-requests-list');
             list.innerHTML = '';
-            getReservationsForDate(d).forEach(r => {
-                list.innerHTML += `<div class="p-2 bg-amber-50 rounded text-xs"><b>${r.name}</b> (${r.code})<br><button onclick="removeDateFromReservation('${r.id}', '${d}')" class="text-red-600 underline mt-1">Eliminar fecha</button></div>`;
+            const reqs = getReservationsForDate(d);
+            document.getElementById('day-admin-count-badge').textContent = reqs.length;
+            reqs.forEach(r => {
+                list.innerHTML += `<div class="p-2 bg-amber-50 rounded text-xs flex justify-between items-center"><div><b>${r.name}</b> (${r.code})</div><button onclick="removeDateFromReservation('${r.id}', '${d}')" class="text-red-600 underline font-semibold">Eliminar</button></div>`;
             });
             document.getElementById('day-admin-modal').classList.remove('hidden');
         }
@@ -787,8 +793,16 @@
         }
 
         function handleAdminToggleClick() {
-            if (state.isAdminMode) { state.isAdminMode = false; renderCalendar(); }
-            else requireAdminAuth(() => renderCalendar());
+            if (state.isAdminMode) { 
+                state.isAdminMode = false; 
+                document.getElementById('admin-toggle-label').textContent = "Modo Administradora";
+                renderCalendar(); 
+            } else {
+                requireAdminAuth(() => {
+                    document.getElementById('admin-toggle-label').textContent = "Salir de Modo Admin";
+                    renderCalendar();
+                });
+            }
         }
 
         function changeMonth(delta) { state.currentViewDate.setMonth(state.currentViewDate.getMonth() + delta); renderCalendar(); }
@@ -804,6 +818,26 @@
         function protectedOpenAdminModal() { requireAdminAuth(() => { populateAdminTable(); document.getElementById('admin-modal').classList.remove('hidden'); }); }
         function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
 
+        function renderAdminMonthsGrid() {
+            const grid = document.getElementById('admin-months-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            ACADEMIC_MONTHS.forEach(m => {
+                const isPub = state.publishedMonths.has(m.key);
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `p-2 rounded-xl text-xs font-semibold border transition-all flex flex-col items-center justify-center space-y-1 ${isPub ? 'bg-emerald-50 border-emerald-300 text-emerald-900' : 'bg-white border-slate-200 text-slate-500'}`;
+                btn.innerHTML = `<span>${m.label.split(' ')[0]}</span><span class="text-[10px] px-1.5 py-0.5 rounded ${isPub ? 'bg-emerald-200 text-emerald-900' : 'bg-slate-100 text-slate-600'}">${isPub ? 'Abierto' : 'Oculto'}</span>`;
+                btn.onclick = async () => {
+                    if (state.publishedMonths.has(m.key)) state.publishedMonths.delete(m.key);
+                    else state.publishedMonths.add(m.key);
+                    await saveStateToStorage();
+                    renderCalendar();
+                };
+                grid.appendChild(btn);
+            });
+        }
+
         function populateAdminTable() {
             const tbody = document.getElementById('admin-table-body');
             tbody.innerHTML = state.reservations.length === 0 ? '<tr><td colspan="6" class="p-4 text-center text-slate-400">No hay solicitudes.</td></tr>' : '';
@@ -814,24 +848,27 @@
 
         async function deleteSingleReservation(id) {
             showConfirmModal('Eliminar', '¿Eliminar solicitud?', async () => {
+                const item = state.reservations.find(r => r.id === id);
+                if (item) {
+                    state.historicalLog.push({ ...item, status: 'Eliminado', deletedAt: new Date().toLocaleString() });
+                }
                 state.reservations = state.reservations.filter(r => r.id !== id);
                 await saveStateToStorage(); populateAdminTable(); renderCalendar(); updateCurrentUserStatusPill();
-                showToast('Eliminado.', 'info');
+                showToast('Eliminado y registrado en historial.', 'info');
             });
         }
 
         function openHistoryModal() {
             const tbody = document.getElementById('history-table-body');
-            tbody.innerHTML = '';
+            tbody.innerHTML = state.historicalLog.length === 0 ? '<tr><td colspan="5" class="p-4 text-center text-slate-400">Sin registros en el historial.</td></tr>' : '';
             state.historicalLog.forEach(h => {
-                tbody.innerHTML += `<tr class="border-b"><td class="p-3 font-mono">${h.code}</td><td class="p-3">${h.name}</td><td class="p-3">${h.teachers}</td><td class="p-3">${h.dates.map(formatDateSpanish).join(', ')}</td><td class="p-3">${h.status}</td></tr>`;
+                tbody.innerHTML += `<tr class="border-b"><td class="p-3 font-mono">${h.code}</td><td class="p-3">${h.name}</td><td class="p-3">${h.teachers}</td><td class="p-3">${h.dates.map(formatDateSpanish).join(', ')}</td><td class="p-3"><span class="px-2 py-0.5 rounded text-[10px] ${h.status === 'Activo' ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}">${h.status}</span></td></tr>`;
             });
             document.getElementById('history-modal').classList.remove('hidden');
         }
         function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
-        async function refreshAndSaveAdminChanges() { await saveStateToStorage(); showToast('Guardado en la nube.', 'success'); }
+        async function refreshAndSaveAdminChanges() { await saveStateToStorage(); showToast('Guardado en la nube con éxito.', 'success'); }
 
-        // Inicialización cargando datos de Supabase de forma asíncrona
         window.onload = async function() {
             await loadStateFromStorage();
             document.getElementById('welcome-form').reset();
