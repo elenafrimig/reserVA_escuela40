@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva Acompañamiento Escuela 4.0 - Valladolid</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0a3651',
+                        },
+                        junta: {
+                            red: '#d92525',
+                            dark: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .calendar-grid {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="font-sans h-full text-slate-800 flex flex-col antialiased">
+
+    <!-- TOP NAVIGATION / HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-laptop-code text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-lg leading-tight">Escuela 4.0 <span class="text-brand-600">Valladolid</span></h1>
+                    <p class="text-xs text-slate-500 font-medium">Gestión de Acompañamiento Pedagógico</p>
+                </div>
+            </div>
+
+            <!-- Header controls & Center badge -->
+            <div class="flex items-center space-x-3">
+                <div id="header-user-badge" class="hidden items-center bg-slate-100 border border-slate-200 px-3 py-1 rounded-lg text-xs space-x-2">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-school text-brand-600 mr-2"></i>
+                        <span id="badge-school-name" class="font-semibold text-slate-700 truncate max-w-[140px] sm:max-w-[200px]">Centro</span>
+                        <span id="badge-school-code" class="ml-2 bg-brand-100 text-brand-800 font-mono px-1.5 py-0.5 rounded">47XXXXXX</span>
+                    </div>
+                    <button onclick="switchCenter()" title="Cambiar a otro centro" class="text-slate-500 hover:text-brand-600 hover:bg-slate-200 p-1.5 rounded-md transition-colors flex items-center space-x-1 font-medium text-[11px]">
+                        <i class="fa-solid fa-right-from-bracket text-slate-400"></i>
+                        <span class="hidden sm:inline">Cambiar Centro</span>
+                    </button>
+                </div>
+
+                <!-- Admin Mode Toggle Switch -->
+                <button id="btn-admin-toggle" onclick="handleAdminToggleClick()" class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all duration-200 bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200">
+                    <i class="fa-solid fa-lock text-amber-600 mr-0.5"></i>
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span id="admin-toggle-label">Modo Administradora</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed top-20 right-5 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full"></div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col">
+
+        <!-- WELCOME MODAL OVERLAY -->
+        <div id="welcome-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-40 flex items-center justify-center p-4 transition-opacity duration-300">
+            <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 sm:p-8 relative overflow-hidden transform transition-all">
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-100 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-blue-100 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="text-center mb-6 relative">
+                    <div class="inline-flex items-center justify-center w-14 h-14 bg-brand-50 rounded-2xl text-brand-600 mb-3 border border-brand-100 shadow-sm">
+                        <i class="fa-solid fa-calendar-check text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">Reserva de Acompañamiento</h2>
+                    <p class="text-sm text-slate-500 mt-1">Programa Escuela 4.0 - Provincia de Valladolid</p>
+                </div>
+
+                <form id="welcome-form" onsubmit="handleStartApp(event)" class="space-y-4 relative" autocomplete="off">
+                    <div>
+                        <label for="input-code" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            1. Código de Centro <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-hashtag"></i>
+                            </div>
+                            <input type="text" id="input-code" maxlength="8" placeholder="Ej. 47001234" required autocomplete="off" value=""
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono text-slate-900 text-sm transition-all"
+                                oninput="validateCodeInput(this)">
+                        </div>
+                        <p id="code-error" class="text-xs text-red-600 mt-1 hidden flex items-center">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i> Debe ser un número de 8 cifras que empiece por 47.
+                        </p>
+                    </div>
+
+                    <div>
+                        <label for="input-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            2. Nombre del Centro Solicitante <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <input type="text" id="input-name" placeholder="Ej. CEIP Pisuerga" required autocomplete="off" value=""
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 text-sm transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="input-teachers" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            3. Número de Profesorado Solicitante <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <input type="number" id="input-teachers" min="1" max="300" placeholder="Ej. 18" required autocomplete="off" value=""
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 text-sm transition-all">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-welcome"
+                        class="w-full mt-6 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2">
+                        <span>Comenzar Reserva</span>
+                        <i class="fa-solid fa-arrow-right text-sm"></i>
+                    </button>
+                </form>
+
+                <div class="mt-4 text-center">
+                    <p class="text-xs text-slate-400">
+                        <i class="fa-solid fa-lock mr-1"></i> Acceso restringido a centros educativos de Valladolid.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- APPLICATION LAYOUT -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+            
+            <!-- LEFT PANEL -->
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-circle-info text-brand-600 mr-2"></i>
+                            Estado de Solicitud
+                        </h3>
+                        <span id="status-pill" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                            Pendiente
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-500">Centro:</span>
+                            <span id="display-center-name" class="font-medium text-slate-800 text-right">No definido</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-500">Código Prov.:</span>
+                            <span id="display-center-code" class="font-mono text-slate-800">----</span>
+                        </div>
+                        <div class="flex justify-between py-1">
+                            <span class="text-slate-500">Profesorado participante:</span>
+                            <span id="display-center-teachers" class="font-medium text-slate-800">0 docentes</span>
+                        </div>
+
+                        <div id="confirmed-dates-container" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between text-xs font-semibold text-emerald-800">
+                                <span><i class="fa-solid fa-calendar-check mr-1 text-emerald-600"></i> Fechas Confirmadas:</span>
+                                <span class="text-[10px] text-slate-500 font-normal italic flex items-center">
+                                    <i class="fa-solid fa-lock text-amber-600 mr-1"></i> Modo Admin únicamente
+                                </span>
+                            </div>
+                            <div id="confirmed-dates-list" class="space-y-1.5"></div>
+                        </div>
+
+                        <div class="mt-2 p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-[11px] flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                            <span><strong>Nota importante:</strong> Tras seleccionar las fechas, recuerde pulsar en <strong class="text-emerald-800">"Confirmar Reserva de Fechas"</strong>.</span>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100">
+                            <button onclick="protectedOpenAdminModal()" class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold rounded-xl transition-all text-xs flex items-center justify-between border border-amber-200/80 shadow-sm group">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-school-flag text-brand-600"></i>
+                                    <span>Ver listado de centros</span>
+                                </div>
+                                <span class="flex items-center text-[10px] bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-mono font-bold">
+                                    <i class="fa-solid fa-lock text-amber-700 mr-1"></i> Protegido
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Rules Card -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center">
+                        <i class="fa-solid fa-gavel text-brand-600 mr-2"></i>
+                        Condiciones de Reserva
+                    </h3>
+                    <ul class="text-xs text-slate-600 space-y-2">
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-0.5 mr-2 shrink-0"></i>
+                            <span>Sólo podrán participar aquellos centros que hayan solicitado el acompañamiento.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-0.5 mr-2 shrink-0"></i>
+                            <span>Puede reservar <strong>1 o máximo 2 días</strong> de acompañamiento.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-0.5 mr-2 shrink-0"></i>
+                            <span>Si selecciona 2 días, debe existir un <strong>espacio mínimo de 1 semana (7 días)</strong>.</span>
+                        </li>
+                    </ul>
+                </div>
+
+                <!-- Selected Dates Summary -->
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center justify-between">
+                        <span><i class="fa-solid fa-calendar-days text-brand-600 mr-2"></i>Días Seleccionados</span>
+                        <div class="flex items-center space-x-2">
+                            <button id="btn-clear-selection" onclick="clearSelectedDates()" class="hidden text-[11px] text-red-600 hover:text-red-800 font-medium hover:underline">
+                                Limpiar
+                            </button>
+                            <span id="selected-count-badge" class="bg-brand-100 text-brand-800 font-bold text-xs px-2 py-0.5 rounded-full">0 / 2</span>
+                        </div>
+                    </h3>
+
+                    <div id="selected-dates-list" class="space-y-2 min-h-[80px] flex flex-col justify-center">
+                        <p class="text-xs text-slate-400 text-center py-4 italic">
+                            Haga clic en las fechas del calendario para añadirlas.
+                        </p>
+                    </div>
+
+                    <button id="btn-confirm-reservation" onclick="submitReservation()" disabled
+                        class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow transition-all duration-200 flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Confirmar Reserva de Fechas</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- RIGHT PANEL: CALENDAR -->
+            <div class="lg:col-span-8 flex flex-col">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex-1 p-5 sm:p-6 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 flex-wrap gap-3">
+                        <div>
+                            <div class="flex items-center space-x-3 flex-wrap gap-y-1">
+                                <h2 id="calendar-month-year" class="text-xl font-bold text-slate-900 capitalize">
+                                    Octubre 2026
+                                </h2>
+                                <span id="month-published-badge" class="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Abierto para reservas
+                                </span>
+
+                                <div id="admin-month-selector-container" class="hidden items-center space-x-2">
+                                    <select id="admin-month-select" onchange="handleAdminMonthChange(this.value)" class="bg-amber-50 border border-amber-300 text-amber-900 font-semibold text-xs rounded-xl px-2.5 py-1 focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-sm">
+                                        <option value="2026-08">Agosto 2026</option>
+                                        <option value="2026-09">Septiembre 2026</option>
+                                        <option value="2026-10">Octubre 2026</option>
+                                        <option value="2026-11">Noviembre 2026</option>
+                                        <option value="2026-12">Diciembre 2026</option>
+                                        <option value="2027-01">Enero 2027</option>
+                                        <option value="2027-02">Febrero 2027</option>
+                                        <option value="2027-03">Marzo 2027</option>
+                                        <option value="2027-04">Abril 2027</option>
+                                        <option value="2027-05">Mayo 2027</option>
+                                        <option value="2027-06">Junio 2027</option>
+                                        <option value="2027-07">Julio 2027</option>
+                                    </select>
+                                    <button id="btn-toggle-month-publish" onclick="toggleCurrentMonthPublished()" class="text-xs font-bold px-3 py-1 rounded-xl shadow-sm border transition-colors flex items-center space-x-1">
+                                        <i class="fa-solid fa-eye mr-1"></i>
+                                        <span id="label-toggle-month-publish">Publicar Mes</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <p id="admin-mode-indicator" class="text-xs font-semibold text-amber-700 hidden mt-1 flex items-center">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Modo Administradora Activo.
+                            </p>
+                        </div>
+
+                        <div class="flex items-center space-x-2">
+                            <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors">
+                                <i class="fa-solid fa-chevron-left"></i>
+                            </button>
+                            <button onclick="goToCurrentMonth()" class="text-xs font-semibold px-3 py-1.5 hover:bg-slate-100 rounded-lg text-slate-600 border border-slate-200">
+                                Hoy
+                            </button>
+                            <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors">
+                                <i class="fa-solid fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="unpublished-month-banner" class="hidden mb-4 p-3 bg-slate-100 border border-slate-300 rounded-xl text-slate-700 text-xs flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-lock text-slate-500 text-base"></i>
+                            <span><strong>Mes no publicado:</strong> La administración aún no ha abierto este mes.</span>
+                        </div>
+                    </div>
+
+                    <div class="grid calendar-grid text-center font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">
+                        <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div class="text-slate-300">Sáb</div><div class="text-slate-300">Dom</div>
+                    </div>
+
+                    <div id="calendar-days" class="grid calendar-grid gap-1.5 sm:gap-2 flex-1"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- PASSWORD MODAL -->
+    <div id="password-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 relative">
+            <button onclick="closePasswordModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="text-center mb-5">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl mb-3 border border-amber-200">
+                    <i class="fa-solid fa-key text-xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-900">Acceso Protegido</h3>
+            </div>
+            <form onsubmit="handlePasswordSubmit(event)" class="space-y-4">
+                <div>
+                    <label for="input-admin-password" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Contraseña</label>
+                    <input type="password" id="input-admin-password" placeholder="••••••••" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm">
+                    <p id="password-error" class="text-xs text-red-600 mt-1 hidden">Contraseña incorrecta.</p>
+                </div>
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closePasswordModal()" class="w-1/2 py-2.5 bg-slate-100 rounded-xl text-xs">Cancelar</button>
+                    <button type="submit" class="w-1/2 py-2.5 bg-brand-600 text-white rounded-xl text-xs">Acceder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 relative text-center">
+            <h3 id="confirm-modal-title" class="text-lg font-bold text-slate-900">¿Confirmar acción?</h3>
+            <p id="confirm-modal-text" class="text-xs text-slate-600 mt-2">Esta acción no se puede deshacer.</p>
+            <div class="flex space-x-2 pt-4">
+                <button type="button" onclick="closeConfirmModal()" class="w-1/2 py-2.5 bg-slate-100 rounded-xl text-xs">Cancelar</button>
+                <button type="button" id="btn-confirm-action" class="w-1/2 py-2.5 bg-red-600 text-white rounded-xl text-xs">Aceptar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- DAY ADMIN MODAL -->
+    <div id="day-admin-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 relative">
+            <button onclick="closeDayAdminModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <h3 id="day-admin-modal-title" class="text-lg font-bold text-slate-900 mb-2">Gestión del Día</h3>
+            <div id="day-admin-block-container" class="mb-4 p-3 bg-slate-50 border rounded-xl flex items-center justify-between">
+                <span id="day-admin-block-status" class="text-xs font-semibold">Estado</span>
+                <button id="btn-toggle-day-block" onclick="toggleBlockFromDayModal()" class="px-3 py-1.5 text-xs font-semibold rounded-lg bg-red-100 text-red-800">Bloquear</button>
+            </div>
+            <div id="day-admin-requests-list" class="max-h-60 overflow-y-auto space-y-2"></div>
+            <button onclick="closeDayAdminModal()" class="w-full mt-4 py-2.5 bg-slate-800 text-white text-xs rounded-xl">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- ADMIN PANEL MODAL -->
+    <div id="admin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-900">Panel de Administración</h3>
+                <button onclick="closeAdminModal()"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <div id="admin-months-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2"></div>
+                <div class="flex space-x-2">
+                    <button onclick="refreshAndSaveAdminChanges()" class="bg-emerald-600 text-white text-xs px-4 py-2 rounded-xl">Guardar Cambios</button>
+                    <button onclick="openHistoryModal()" class="bg-brand-600 text-white text-xs px-4 py-2 rounded-xl">Registro Histórico</button>
+                    <button onclick="clearAllDataPrompt()" class="bg-red-50 text-red-700 text-xs px-4 py-2 rounded-xl">Reiniciar Datos</button>
+                </div>
+                <div class="border rounded-xl overflow-hidden">
+                    <table class="w-full text-left text-xs">
+                        <thead><tr class="bg-slate-100"><th class="p-3">Código</th><th class="p-3">Centro</th><th class="p-3">Docentes</th><th class="p-3">Fechas</th><th class="p-3 text-right">Acción</th></tr></thead>
+                        <tbody id="admin-table-body" class="divide-y"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY MODAL -->
+    <div id="history-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-900">Registro Histórico de Centros</h3>
+                <button onclick="closeHistoryModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <table class="w-full text-left text-xs">
+                    <thead><tr class="bg-slate-100"><th class="p-3">Código</th><th class="p-3">Centro</th><th class="p-3">Estado</th><th class="p-3">Fechas</th></tr></thead>
+                    <tbody id="history-table-body" class="divide-y"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT WITH SUPABASE -->
+    <script>
+        // CONFIGURACIÓN DE SUPABASE
+        const SUPABASE_URL = 'https://tkklbfmfybdtkntasaqp.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_sOLd8lotxVjh7rs-vch2Rw_xHd6Db5W';
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        const ADMIN_PASSWORD = "patatitas";
+
+        const ACADEMIC_MONTHS = [
+            { key: '2026-08', label: 'Agosto 2026' }, { key: '2026-09', label: 'Septiembre 2026' },
+            { key: '2026-10', label: 'Octubre 2026' }, { key: '2026-11', label: 'Noviembre 2026' },
+            { key: '2026-12', label: 'Diciembre 2026' }, { key: '2027-01', label: 'Enero 2027' },
+            { key: '2027-02', label: 'Febrero 2027' }, { key: '2027-03', label: 'Marzo 2027' },
+            { key: '2027-04', label: 'Abril 2027' }, { key: '2027-05', label: 'Mayo 2027' },
+            { key: '2027-06', label: 'Junio 2027' }, { key: '2027-07', label: 'Julio 2027' }
+        ];
+
+        const state = {
+            currentUser: null,
+            selectedDates: [],
+            blockedDates: new Set(['2026-10-12', '2026-11-01', '2026-12-06', '2026-12-08']),
+            publishedMonths: new Set(['2026-10']),
+            reservations: [],
+            historicalLog: [],
+            selectedReservationIds: new Set(),
+            currentViewDate: new Date(2026, 9, 1),
+            currentAdminDate: null,
+            isAdminMode: false,
+            isAdminAuthenticated: false,
+            pendingAuthCallback: null,
+            pendingConfirmCallback: null
+        };
+
+        async function saveStateToStorage() {
+            try {
+                const stateData = {
+                    blockedDates: Array.from(state.blockedDates),
+                    publishedMonths: Array.from(state.publishedMonths),
+                    reservations: state.reservations,
+                    historicalLog: state.historicalLog
+                };
+                const { error } = await supabaseClient
+                    .from('app_state')
+                    .upsert({ key: 'main_config', value: stateData });
+
+                if (error) console.error('Error al guardar en Supabase:', error);
+            } catch (e) {
+                console.warn('Error de conexión con la nube', e);
+            }
+        }
+
+        async function loadStateFromStorage() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('app_state')
+                    .select('value')
+                    .eq('key', 'main_config')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') {
+                    console.error('Error al cargar de Supabase:', error);
+                    return;
+                }
+
+                if (data && data.value) {
+                    const saved = data.value;
+                    if (saved.blockedDates) state.blockedDates = new Set(saved.blockedDates);
+                    if (saved.publishedMonths) state.publishedMonths = new Set(saved.publishedMonths);
+                    if (saved.reservations) state.reservations = saved.reservations;
+                    if (saved.historicalLog) state.historicalLog = saved.historicalLog;
+                }
+            } catch (e) {
+                console.warn('No se pudo conectar con Supabase, usando valores por defecto', e);
+            }
+        }
+
+        function requireAdminAuth(callback) {
+            if (state.isAdminAuthenticated) {
+                state.isAdminMode = true;
+                callback();
+            } else {
+                state.pendingAuthCallback = () => {
+                    state.isAdminMode = true;
+                    callback();
+                };
+                document.getElementById('input-admin-password').value = '';
+                document.getElementById('password-error').classList.add('hidden');
+                document.getElementById('password-modal').classList.remove('hidden');
+                setTimeout(() => document.getElementById('input-admin-password').focus(), 100);
+            }
+        }
+
+        function handlePasswordSubmit(event) {
+            event.preventDefault();
+            const passwordInput = document.getElementById('input-admin-password').value.trim();
+            if (passwordInput === ADMIN_PASSWORD) {
+                state.isAdminAuthenticated = true;
+                state.isAdminMode = true;
+                closePasswordModal();
+                showToast('Acceso de administración autorizado', 'success');
+                if (state.pendingAuthCallback) {
+                    const cb = state.pendingAuthCallback;
+                    state.pendingAuthCallback = null;
+                    cb();
+                }
+            } else {
+                document.getElementById('password-error').classList.remove('hidden');
+            }
+        }
+
+        function closePasswordModal() {
+            document.getElementById('password-modal').classList.add('hidden');
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            let bgClasses = 'bg-slate-800 text-white';
+            let iconClass = 'fa-circle-info';
+
+            if (type === 'success') { bgClasses = 'bg-emerald-600 text-white'; iconClass = 'fa-circle-check'; }
+            else if (type === 'error') { bgClasses = 'bg-red-600 text-white'; iconClass = 'fa-circle-xmark'; }
+            else if (type === 'warning') { bgClasses = 'bg-amber-600 text-white'; iconClass = 'fa-triangle-exclamation'; }
+
+            toast.className = `p-3.5 rounded-xl shadow-xl flex items-start space-x-2.5 text-xs font-medium transition-all transform translate-y-2 opacity-0 pointer-events-auto ${bgClasses}`;
+            toast.innerHTML = `<i class="fa-solid ${iconClass} text-sm mt-0.5"></i><span class="flex-1">${message}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
+            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, 3500);
+        }
+
+        function showConfirmModal(title, text, onConfirm) {
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-text').textContent = text;
+            state.pendingConfirmCallback = onConfirm;
+            document.getElementById('btn-confirm-action').onclick = function() {
+                closeConfirmModal();
+                if (state.pendingConfirmCallback) {
+                    const cb = state.pendingConfirmCallback;
+                    state.pendingConfirmCallback = null;
+                    cb();
+                }
+            };
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            state.pendingConfirmCallback = null;
+        }
+
+        function validateCodeInput(input) {
+            const val = input.value;
+            const errorEl = document.getElementById('code-error');
+            if (val.length > 0 && (!val.startsWith('47') || val.length !== 8 || isNaN(val))) {
+                errorEl.classList.remove('hidden');
+            } else {
+                errorEl.classList.add('hidden');
+            }
+        }
+
+        function handleStartApp(event) {
+            event.preventDefault();
+            const code = document.getElementById('input-code').value.trim();
+            const name = document.getElementById('input-name').value.trim();
+            const teachers = document.getElementById('input-teachers').value.trim();
+
+            if (!code.startsWith('47') || code.length !== 8 || isNaN(code)) {
+                showToast('El código de centro debe tener 8 dígitos y comenzar por 47.', 'error');
+                return;
+            }
+
+            state.currentUser = { code, name, teachers: parseInt(teachers, 10) };
+            document.getElementById('welcome-modal').classList.add('hidden');
+            document.getElementById('header-user-badge').classList.remove('hidden');
+            document.getElementById('header-user-badge').classList.add('flex');
+            document.getElementById('badge-school-name').textContent = name;
+            document.getElementById('badge-school-code').textContent = code;
+
+            document.getElementById('display-center-name').textContent = name;
+            document.getElementById('display-center-code').textContent = code;
+            document.getElementById('display-center-teachers').textContent = teachers + ' docentes';
+
+            updateCurrentUserStatusPill();
+            renderCalendar();
+            updateSelectedDatesList();
+            showToast(`Bienvenido/a, ${name}.`, 'success');
+        }
+
+        function switchCenter() {
+            showConfirmModal('Cambiar de Centro', '¿Deseas salir para introducir los datos de otro centro?', () => {
+                state.currentUser = null;
+                state.selectedDates = [];
+                document.getElementById('welcome-form').reset();
+                document.getElementById('header-user-badge').classList.add('hidden');
+                document.getElementById('welcome-modal').classList.remove('hidden');
+                renderCalendar();
+                updateSelectedDatesList();
+            });
+        }
+
+        function formatDateIso(year, monthIndex, day) {
+            return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        }
+
+        function formatDateSpanish(dateStr) {
+            const parts = dateStr.split('-');
+            return parts.length !== 3 ? dateStr : `${parts[2]}/${parts[1]}/${parts[0]}`;
+        }
+
+        function formatDateSpanishLong(dateStr) {
+            const [y, m, d] = dateStr.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function getMonthKey(dateObj) {
+            return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function getExistingDatesForCode(code) {
+            let dates = [];
+            state.reservations.forEach(res => { if (res.code === code) dates.push(...res.dates); });
+            return dates;
+        }
+
+        function getReservationsForDate(dateStr) {
+            return state.reservations.filter(res => res.dates.includes(dateStr));
+        }
+
+        function renderCalendar() {
+            const year = state.currentViewDate.getFullYear();
+            const month = state.currentViewDate.getMonth();
+            const monthKey = getMonthKey(state.currentViewDate);
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            
+            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
+            const isPublished = state.publishedMonths.has(monthKey);
+            const pubBadge = document.getElementById('month-published-badge');
+            const unpubBanner = document.getElementById('unpublished-month-banner');
+
+            if (isPublished) {
+                pubBadge.className = "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
+                pubBadge.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Abierto para reservas`;
+                unpubBanner.classList.add('hidden');
+            } else {
+                pubBadge.className = "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 border border-slate-300";
+                pubBadge.innerHTML = `<i class="fa-solid fa-eye-slash mr-1 text-[10px]"></i> Oculto / No publicado`;
+                if (!state.isAdminMode) unpubBanner.classList.remove('hidden');
+                else unpubBanner.classList.add('hidden');
+            }
+
+            const adminContainer = document.getElementById('admin-month-selector-container');
+            const adminIndicator = document.getElementById('admin-mode-indicator');
+            const adminToggleBtn = document.getElementById('btn-admin-toggle');
+
+            if (state.isAdminMode) {
+                adminContainer.classList.remove('hidden');
+                adminContainer.classList.add('flex');
+                adminIndicator.classList.remove('hidden');
+                adminToggleBtn.className = "flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-amber-500 border-amber-600 text-white shadow-md";
+                document.getElementById('admin-month-select').value = monthKey;
+                document.getElementById('label-toggle-month-publish').textContent = isPublished ? "Ocultar Mes" : "Publicar Mes";
+            } else {
+                adminContainer.classList.add('hidden');
+                adminIndicator.classList.add('hidden');
+                adminToggleBtn.className = "flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-slate-100 border-slate-300 text-slate-700";
+            }
+
+            const container = document.getElementById('calendar-days');
+            container.innerHTML = '';
+            let startingDay = new Date(year, month, 1).getDay() - 1;
+            if (startingDay === -1) startingDay = 6;
+            const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+
+            for (let i = 0; i < startingDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'bg-slate-50/50 rounded-xl border border-slate-100/50 min-h-[70px] sm:min-h-[85px]';
+                container.appendChild(emptyCell);
+            }
+
+            for (let day = 1; day <= totalDaysInMonth; day++) {
+                const dateStr = formatDateIso(year, month, day);
+                const dayDate = new Date(year, month, day);
+                const dayOfWeek = dayDate.getDay();
+                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                const isBlocked = state.blockedDates.has(dateStr);
+                const isSelected = state.selectedDates.includes(dateStr);
+                const requests = getReservationsForDate(dateStr);
+
+                const cell = document.createElement('div');
+                let cellClasses = 'rounded-xl p-2 min-h-[70px] sm:min-h-[85px] border flex flex-col justify-between transition-all relative cursor-pointer select-none ';
+
+                if (state.isAdminMode) {
+                    cellClasses += isBlocked ? 'bg-red-100 border-red-300 text-red-900' : (isWeekend ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-200 hover:bg-amber-50/30');
+                } else {
+                    cellClasses += isSelected ? 'bg-emerald-500 border-emerald-600 text-white shadow-md' : (isBlocked || isWeekend || !isPublished ? 'bg-slate-100/70 border-slate-200 text-slate-400 opacity-80 cursor-not-allowed' : (requests.length > 0 ? 'bg-amber-50/80 border-amber-300 text-slate-800' : 'bg-white border-slate-200'));
+                }
+
+                cell.className = cellClasses;
+                cell.onclick = () => handleDayClick(dateStr, isWeekend, isBlocked, isPublished);
+
+                let cellInner = `<div class="flex items-center justify-between"><span class="font-bold text-xs sm:text-sm ${isSelected ? 'text-white' : 'text-slate-800'}">${day}</span>`;
+                if (isBlocked) cellInner += `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-200 text-red-800"><i class="fa-solid fa-lock text-[9px]"></i></span>`;
+                cellInner += `</div><div class="mt-1 space-y-1">`;
+                if (isSelected) cellInner += `<div class="bg-emerald-700/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">Seleccionado</div>`;
+                if (requests.length > 0) cellInner += `<button type="button" onclick="event.stopPropagation(); protectedShowRequests('${dateStr}')" class="w-full text-left bg-amber-200 text-amber-900 font-bold text-[10px] px-1.5 py-1 rounded">Solicitado (${requests.length})</button>`;
+                cellInner += `</div>`;
+                cell.innerHTML = cellInner;
+                container.appendChild(cell);
+            }
+        }
+
+        function handleDayClick(dateString, isWeekend, isBlocked, isPublished) {
+            if (state.isAdminMode) {
+                if (getReservationsForDate(dateString).length > 0) openDayAdminModal(dateString);
+                else {
+                    if (state.blockedDates.has(dateString)) state.blockedDates.delete(dateString);
+                    else state.blockedDates.add(dateString);
+                    saveStateToStorage();
+                    renderCalendar();
+                }
+                return;
+            }
+            if (isWeekend || !isPublished || isBlocked) return;
+            toggleSelectedDate(dateString);
+        }
+
+        async function removeDateFromReservation(reservationId, dateStr) {
+            if (!state.isAdminMode) { requireAdminAuth(() => removeDateFromReservation(reservationId, dateStr)); return; }
+            const reservation = state.reservations.find(r => r.id === reservationId);
+            if (!reservation) return;
+            reservation.dates = reservation.dates.filter(d => d !== dateStr);
+            if (reservation.dates.length === 0) state.reservations = state.reservations.filter(r => r.id !== reservationId);
+            await saveStateToStorage();
+            updateCurrentUserStatusPill();
+            renderCalendar();
+            updateSelectedDatesList();
+            showToast(`Fecha eliminada.`, 'success');
+        }
+
+        function updateCurrentUserStatusPill() {
+            if (!state.currentUser) return;
+            const existingDates = getExistingDatesForCode(state.currentUser.code);
+            const statusPill = document.getElementById('status-pill');
+            const confirmedContainer = document.getElementById('confirmed-dates-container');
+            const confirmedList = document.getElementById('confirmed-dates-list');
+
+            if (existingDates.length > 0) {
+                statusPill.textContent = 'Solicitud Registrada';
+                statusPill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
+                confirmedContainer.classList.remove('hidden');
+                confirmedList.innerHTML = '';
+                existingDates.forEach(dateStr => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 font-medium';
+                    item.innerHTML = `<span>${formatDateSpanishLong(dateStr)}</span>`;
+                    confirmedList.appendChild(item);
+                });
+            } else {
+                statusPill.textContent = 'Pendiente';
+                statusPill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200';
+                confirmedContainer.classList.add('hidden');
+            }
+        }
+
+        function openDayAdminModal(dateStr) {
+            state.currentAdminDate = dateStr;
+            const requests = getReservationsForDate(dateStr);
+            const listEl = document.getElementById('day-admin-requests-list');
+            document.getElementById('day-admin-modal-title').textContent = `Gestión: ${formatDateSpanish(dateStr)}`;
+            listEl.innerHTML = '';
+            requests.forEach(req => {
+                listEl.innerHTML += `<div class="p-3 bg-amber-50 border rounded-xl text-xs flex justify-between items-center"><div><b>${req.name}</b><br>${req.teachers} docentes</div><button onclick="removeDateFromReservation('${req.id}', '${dateStr}')" class="bg-red-600 text-white px-2 py-1 rounded">Eliminar</button></div>`;
+            });
+            document.getElementById('day-admin-modal').classList.remove('hidden');
+        }
+
+        function closeDayAdminModal() { document.getElementById('day-admin-modal').classList.add('hidden'); }
+
+        function handleAdminToggleClick() {
+            if (state.isAdminMode) {
+                state.isAdminMode = false;
+                renderCalendar();
+            } else {
+                requireAdminAuth(() => renderCalendar());
+            }
+        }
+
+        function toggleSelectedDate(dateStr) {
+            const index = state.selectedDates.indexOf(dateStr);
+            if (index !== -1) state.selectedDates.splice(index, 1);
+            else {
+                if (state.selectedDates.length >= 2) { showToast('Máximo 2 días.', 'warning'); return; }
+                state.selectedDates.push(dateStr);
+                state.selectedDates.sort();
+            }
+            updateSelectedDatesList();
+            renderCalendar();
+        }
+
+        function updateSelectedDatesList() {
+            const listEl = document.getElementById('selected-dates-list');
+            const count = state.selectedDates.length;
+            document.getElementById('selected-count-badge').textContent = `${count} / 2`;
+            document.getElementById('btn-confirm-reservation').disabled = count === 0 || !state.currentUser;
+            listEl.innerHTML = count === 0 ? '<p class="text-xs text-slate-400 text-center py-4 italic">Selecciona fechas en el calendario.</p>' : '';
+            state.selectedDates.forEach((dateStr, idx) => {
+                listEl.innerHTML += `<div class="flex items-center justify-between p-2.5 bg-brand-50 border rounded-xl text-xs font-semibold text-brand-900"><span>${formatDateSpanishLong(dateStr)}</span></div>`;
+            });
+        }
+
+        function clearSelectedDates() { state.selectedDates = []; updateSelectedDatesList(); renderCalendar(); }
+
+        async function submitReservation() {
+            if (!state.currentUser || state.selectedDates.length === 0) return;
+            const newReservation = {
+                id: 'res_' + Date.now(),
+                code: state.currentUser.code,
+                name: state.currentUser.name,
+                teachers: state.currentUser.teachers,
+                dates: [...state.selectedDates],
+                timestamp: new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
+            };
+            state.reservations.push(newReservation);
+            state.historicalLog.push({ ...newReservation, status: 'Activo', deletedAt: null });
+
+            await saveStateToStorage();
+            state.selectedDates = [];
+            updateCurrentUserStatusPill();
+            renderCalendar();
+            updateSelectedDatesList();
+            showToast('¡Reserva confirmada en la nube!', 'success');
+        }
+
+        function protectedShowRequests(dateStr) { requireAdminAuth(() => openDayAdminModal(dateStr)); }
+        function changeMonth(delta) { state.currentViewDate.setMonth(state.currentViewDate.getMonth() + delta); renderCalendar(); }
+        function goToCurrentMonth() { state.currentViewDate = new Date(2026, 9, 1); renderCalendar(); }
+        function handleAdminMonthChange(val) { const [y, m] = val.split('-').map(Number); state.currentViewDate = new Date(y, m - 1, 1); renderCalendar(); }
+
+        async function toggleCurrentMonthPublished() {
+            const monthKey = getMonthKey(state.currentViewDate);
+            if (state.publishedMonths.has(monthKey)) state.publishedMonths.delete(monthKey);
+            else state.publishedMonths.add(monthKey);
+            await saveStateToStorage();
+            renderCalendar();
+        }
+
+        function protectedOpenAdminModal() {
+            requireAdminAuth(() => {
+                const tbody = document.getElementById('admin-table-body');
+                tbody.innerHTML = state.reservations.length === 0 ? '<tr><td colspan="5" class="p-4 text-center">No hay reservas.</td></tr>' : '';
+                state.reservations.forEach(res => {
+                    tbody.innerHTML += `<tr class="border-b"><td class="p-3">${res.code}</td><td class="p-3">${res.name}</td><td class="p-3">${res.teachers}</td><td class="p-3">${res.dates.map(formatDateSpanish).join(', ')}</td><td class="p-3 text-right"><button onclick="deleteSingleReservation('${res.id}')" class="text-red-600">Eliminar</button></td></tr>`;
+                });
+                document.getElementById('admin-modal').classList.remove('hidden');
+            });
+        }
+
+        function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
+
+        async function deleteSingleReservation(id) {
+            showConfirmModal('Eliminar', '¿Eliminar solicitud?', async () => {
+                state.reservations = state.reservations.filter(r => r.id !== id);
+                await saveStateToStorage();
+                protectedOpenAdminModal();
+                renderCalendar();
+                showToast('Eliminado.', 'info');
+            });
+        }
+
+        function openHistoryModal() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+            state.historicalLog.forEach(log => {
+                tbody.innerHTML += `<tr class="border-b"><td class="p-3">${log.code}</td><td class="p-3">${log.name}</td><td class="p-3">${log.status}</td><td class="p-3">${log.dates.map(formatDateSpanish).join(', ')}</td></tr>`;
+            });
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
+        async function refreshAndSaveAdminChanges() { await saveStateToStorage(); showToast('Guardado en la nube.', 'success'); }
+
+        async function clearAllDataPrompt() {
+            showConfirmModal('Reiniciar', '¿Reiniciar datos?', async () => {
+                state.reservations = []; state.historicalLog = []; state.selectedDates = [];
+                await saveStateToStorage();
+                renderCalendar();
+                updateSelectedDatesList();
+                showToast('Datos reiniciados.', 'info');
+            });
+        }
+
+        window.onload = async function() {
+            await loadStateFromStorage();
+            const welcomeForm = document.getElementById('welcome-form');
+            if (welcomeForm) welcomeForm.reset();
+            renderCalendar();
+            updateSelectedDatesList();
+        };
+    </script>
+</body>
+</html>
