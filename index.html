@@ -1,188 +1,475 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full bg-slate-50">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestión de Reservas - Sincronizado</title>
-    <!-- Tailwind CSS para el diseño -->
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- FontAwesome para iconos -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Supabase JS Client -->
+    <title>Reserva Acompañamiento Escuela 4.0 - Valladolid</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Supabase JS Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0a3651',
+                        },
+                        junta: {
+                            red: '#d92525',
+                            dark: '#1e293b'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+        .calendar-grid {
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col justify-between">
+<body class="font-sans h-full text-slate-800 flex flex-col antialiased">
 
-    <!-- CONTENEDOR PRINCIPAL -->
-    <div class="max-w-4xl mx-auto p-4 sm:p-6 w-full flex-1">
-        
-        <!-- CABECERA -->
-        <header class="flex flex-col sm:flex-row justify-between items-center mb-6 pb-4 border-b border-slate-200 gap-4">
-            <div>
-                <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight flex items-center">
-                    <i class="fa-solid fa-calendar-days text-brand-600 mr-2.5"></i> Sistema de Reservas
-                </h1>
-                <p class="text-xs text-slate-500 mt-0.5">Sincronización en tiempo real activa</p>
-            </div>
-            
-            <div id="header-user-badge" class="hidden items-center space-x-3 bg-white border border-slate-200 px-3.5 py-2 rounded-2xl shadow-sm">
-                <div class="text-right">
-                    <p id="badge-school-name" class="text-xs font-bold text-slate-800 truncate max-w-[150px] sm:max-w-[200px]"></p>
-                    <p class="text-[10px] text-slate-400 font-mono">Código: <span id="badge-school-code"></span></p>
+    <!-- TOP NAVIGATION / HEADER -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-600 text-white p-2.5 rounded-xl shadow-md flex items-center justify-center">
+                    <i class="fa-solid fa-laptop-code text-xl"></i>
                 </div>
-                <button onclick="switchCenter()" class="text-slate-400 hover:text-red-600 transition-colors p-1" title="Cambiar de centro">
-                    <i class="fa-solid fa-right-from-bracket text-sm"></i>
+                <div>
+                    <h1 class="font-bold text-slate-900 text-lg leading-tight">Escuela 4.0 <span class="text-brand-600">Valladolid</span></h1>
+                    <p class="text-xs text-slate-500 font-medium">Gestión de Acompañamiento Pedagógico</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <div id="header-user-badge" class="hidden items-center bg-slate-100 border border-slate-200 px-3 py-1 rounded-lg text-xs space-x-2">
+                    <div class="flex items-center">
+                        <i class="fa-solid fa-school text-brand-600 mr-2"></i>
+                        <span id="badge-school-name" class="font-semibold text-slate-700 truncate max-w-[140px] sm:max-w-[200px]">Centro</span>
+                        <span id="badge-school-code" class="ml-2 bg-brand-100 text-brand-800 font-mono px-1.5 py-0.5 rounded">47XXXXXX</span>
+                    </div>
+                    <button onclick="switchCenter()" title="Cambiar a otro centro" class="text-slate-500 hover:text-brand-600 hover:bg-slate-200 p-1.5 rounded-md transition-colors flex items-center space-x-1 font-medium text-[11px]">
+                        <i class="fa-solid fa-right-from-bracket text-slate-400"></i>
+                        <span class="hidden sm:inline">Cambiar Centro</span>
+                    </button>
+                </div>
+
+                <button id="btn-admin-toggle" onclick="handleAdminToggleClick()" class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border transition-all duration-200 bg-slate-100 border-slate-300 text-slate-700 hover:bg-slate-200">
+                    <i class="fa-solid fa-lock text-amber-600 mr-0.5"></i>
+                    <i class="fa-solid fa-user-shield"></i>
+                    <span id="admin-toggle-label">Modo Administradora</span>
                 </button>
             </div>
-        </header>
+        </div>
+    </header>
 
-        <!-- CONTENIDO INTERactivo DE LA APP -->
-        <main class="space-y-6">
-            <!-- PANEL DE CONTROL DE CALENDARIO -->
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div class="flex flex-col sm:flex-row justify-between items-center mb-4 gap-3">
-                    <div class="flex items-center space-x-2">
-                        <button onclick="changeMonth(-1)" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors">
-                            <i class="fa-solid fa-chevron-left text-xs"></i>
-                        </button>
-                        <h2 id="calendar-month-year" class="text-base sm:text-lg font-bold text-slate-900 min-w-[160px] text-center"></h2>
-                        <button onclick="changeMonth(1)" class="p-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-600 transition-colors">
-                            <i class="fa-solid fa-chevron-right text-xs"></i>
-                        </button>
-                        <button onclick="goToCurrentMonth()" class="text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-600">Hoy</button>
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toast-container" class="fixed top-20 right-5 z-50 flex flex-col space-y-2 pointer-events-none max-w-sm w-full"></div>
+
+    <!-- MAIN CONTENT AREA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col">
+
+        <!-- WELCOME MODAL OVERLAY -->
+        <div id="welcome-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-40 flex items-center justify-center p-4 transition-opacity duration-300">
+            <div class="bg-white rounded-2xl shadow-2xl border border-slate-100 max-w-lg w-full p-6 sm:p-8 relative overflow-hidden transform transition-all">
+                <div class="absolute -top-12 -right-12 w-32 h-32 bg-brand-100 rounded-full blur-2xl pointer-events-none"></div>
+                <div class="absolute -bottom-12 -left-12 w-32 h-32 bg-blue-100 rounded-full blur-2xl pointer-events-none"></div>
+
+                <div class="text-center mb-6 relative">
+                    <div class="inline-flex items-center justify-center w-14 h-14 bg-brand-50 rounded-2xl text-brand-600 mb-3 border border-brand-100 shadow-sm">
+                        <i class="fa-solid fa-calendar-check text-2xl"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold text-slate-900">Reserva de Acompañamiento</h2>
+                    <p class="text-sm text-slate-500 mt-1">Programa Escuela 4.0 - Provincia de Valladolid</p>
+                </div>
+
+                <!-- FORMULARIO SIN AUTOGUARDADO (ATRIBUTOS LIMPIOS) -->
+                <form id="welcome-form" onsubmit="handleStartApp(event)" class="space-y-4 relative" autocomplete="off">
+                    <div>
+                        <label for="input-code" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            1. Código de Centro <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-hashtag"></i>
+                            </div>
+                            <input type="text" id="input-code" maxlength="8" placeholder="Ej. 47001234" required autocomplete="off" value=""
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 font-mono text-slate-900 text-sm transition-all"
+                                oninput="validateCodeInput(this)">
+                        </div>
+                        <p id="code-error" class="text-xs text-red-600 mt-1 hidden flex items-center">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i> Debe ser un número de 8 cifras que empiece por 47.
+                        </p>
                     </div>
 
-                    <div class="flex items-center space-x-2">
-                        <span id="month-published-badge" class="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 border border-slate-300"></span>
-                        <button id="btn-admin-toggle" onclick="handleAdminToggleClick()" class="flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-slate-100 border-slate-300 text-slate-700">
-                            <i class="fa-solid fa-lock text-[10px]"></i> <span>Admin</span>
-                        </button>
+                    <div>
+                        <label for="input-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            2. Nombre del Centro Solicitante <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-graduation-cap"></i>
+                            </div>
+                            <input type="text" id="input-name" placeholder="Ej. CEIP Pisuerga" required autocomplete="off" value=""
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 text-sm transition-all">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="input-teachers" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                            3. Número de Profesorado Solicitante <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                <i class="fa-solid fa-users"></i>
+                            </div>
+                            <input type="number" id="input-teachers" min="1" max="300" placeholder="Ej. 18" required autocomplete="off" value=""
+                                class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 focus:border-brand-500 text-slate-900 text-sm transition-all">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btn-submit-welcome"
+                        class="w-full mt-6 bg-brand-600 hover:bg-brand-700 text-white font-semibold py-3 px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center space-x-2">
+                        <span>Comenzar Reserva</span>
+                        <i class="fa-solid fa-arrow-right text-sm"></i>
+                    </button>
+                </form>
+
+                <div class="mt-4 text-center">
+                    <p class="text-xs text-slate-400">
+                        <i class="fa-solid fa-lock mr-1"></i> Acceso restringido a centros educativos de Valladolid.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- APPLICATION LAYOUT -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1">
+            
+            <div class="lg:col-span-4 space-y-6">
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                        <h3 class="font-bold text-slate-800 flex items-center">
+                            <i class="fa-solid fa-circle-info text-brand-600 mr-2"></i>
+                            Estado de Solicitud
+                        </h3>
+                        <span id="status-pill" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                            Pendiente
+                        </span>
+                    </div>
+
+                    <div class="space-y-2 text-xs">
+                        <div class="flex justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-500">Centro:</span>
+                            <span id="display-center-name" class="font-medium text-slate-800 text-right">No definido</span>
+                        </div>
+                        <div class="flex justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-500">Código Prov.:</span>
+                            <span id="display-center-code" class="font-mono text-slate-800">----</span>
+                        </div>
+                        <div class="flex justify-between py-1">
+                            <span class="text-slate-500">Profesorado participante:</span>
+                            <span id="display-center-teachers" class="font-medium text-slate-800">0 docentes</span>
+                        </div>
+
+                        <div id="confirmed-dates-container" class="hidden pt-2 border-t border-slate-100 space-y-2">
+                            <div class="flex items-center justify-between text-xs font-semibold text-emerald-800">
+                                <span><i class="fa-solid fa-calendar-check mr-1 text-emerald-600"></i> Fechas Confirmadas:</span>
+                                <span class="text-[10px] text-slate-500 font-normal italic flex items-center">
+                                    <i class="fa-solid fa-lock text-amber-600 mr-1"></i> Modo Admin únicamente
+                                </span>
+                            </div>
+                            <div id="confirmed-dates-list" class="space-y-1.5"></div>
+                        </div>
+
+                        <div class="mt-2 p-2.5 bg-amber-50 border border-amber-200/80 rounded-xl text-amber-900 text-[11px] flex items-start space-x-2">
+                            <i class="fa-solid fa-circle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                            <span><strong>Nota importante:</strong> Tras seleccionar las fechas, recuerde pulsar en <strong class="text-emerald-800">"Confirmar Reserva de Fechas"</strong>.</span>
+                        </div>
+
+                        <div class="pt-2 border-t border-slate-100">
+                            <button onclick="protectedOpenAdminModal()" class="w-full py-2 px-3 bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold rounded-xl transition-all text-xs flex items-center justify-between border border-amber-200/80 shadow-sm group">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fa-solid fa-school-flag text-brand-600"></i>
+                                    <span>Ver listado de centros</span>
+                                </div>
+                                <span class="flex items-center text-[10px] bg-amber-200/80 text-amber-900 px-2 py-0.5 rounded-full font-mono font-bold">
+                                    <i class="fa-solid fa-lock text-amber-700 mr-1"></i> Protegido
+                                </span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- CONTENEDOR DE DÍAS DE LA SEMANA -->
-                <div class="grid grid-cols-7 gap-1.5 text-center text-[11px] font-bold text-slate-400 mb-2">
-                    <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div class="text-slate-300">Sáb</div><div class="text-slate-300">Dom</div>
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center">
+                        <i class="fa-solid fa-gavel text-brand-600 mr-2"></i>
+                        Condiciones de Reserva
+                    </h3>
+                    <ul class="text-xs text-slate-600 space-y-2">
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-0.5 mr-2 shrink-0"></i>
+                            <span>Puede reservar <strong>1 o máximo 2 días</strong> de acompañamiento.</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa-solid fa-check text-emerald-500 mt-0.5 mr-2 shrink-0"></i>
+                            <span>Si selecciona 2 días, debe existir un <strong>espacio mínimo de 1 semana (7 días)</strong>.</span>
+                        </li>
+                    </ul>
                 </div>
 
-                <!-- DÍAS DEL CALENDARIO -->
-                <div id="calendar-days" class="grid grid-cols-7 gap-1.5"></div>
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-4">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center justify-between">
+                        <span><i class="fa-solid fa-calendar-days text-brand-600 mr-2"></i>Días Seleccionados</span>
+                        <div class="flex items-center space-x-2">
+                            <button id="btn-clear-selection" onclick="clearSelectedDates()" class="hidden text-[11px] text-red-600 hover:text-red-800 font-medium hover:underline">
+                                Limpiar
+                            </button>
+                            <span id="selected-count-badge" class="bg-brand-100 text-brand-800 font-bold text-xs px-2 py-0.5 rounded-full">0 / 2</span>
+                        </div>
+                    </h3>
 
-                <div id="unpublished-month-banner" class="hidden mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs text-center font-medium">
-                    <i class="fa-solid fa-triangle-exclamation mr-1">></i> Este mes no está abierto para realizar reservas todavía.
+                    <div id="selected-dates-list" class="space-y-2 min-h-[80px] flex flex-col justify-center">
+                        <p class="text-xs text-slate-400 text-center py-4 italic">
+                            Haga clic en las fechas del calendario para añadirlas.
+                        </p>
+                    </div>
+
+                    <button id="btn-confirm-reservation" onclick="submitReservation()" disabled
+                        class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white font-semibold rounded-xl shadow transition-all duration-200 flex items-center justify-center space-x-2 text-sm">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Confirmar Reserva de Fechas</span>
+                    </button>
                 </div>
             </div>
 
-            <!-- ESTADO Y SELECCIÓN ACTUAL -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-sm font-bold text-slate-900">Tu Centro</h3>
-                            <span id="status-pill" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200">Pendiente</span>
-                        </div>
-                        <div class="space-y-1 text-xs text-slate-600 mb-4">
-                            <p><b>Nombre:</b> <span id="display-center-name">-</span></p>
-                            <p><b>Código:</b> <span id="display-center-code">-</span></p>
-                            <p><b>Docentes:</b> <span id="display-center-teachers">-</span></p>
-                        </div>
-                        <div id="confirmed-dates-container" class="hidden space-y-2 mt-3 pt-3 border-t border-slate-100">
-                            <p class="text-xs font-bold text-slate-700">Fechas Reservadas:</p>
-                            <div id="confirmed-dates-list" class="space-y-1.5 max-h-32 overflow-y-auto"></div>
-                        </div>
-                    </div>
-                </div>
+            <!-- RIGHT PANEL: CALENDAR INTERFACE -->
+            <div class="lg:col-span-8 flex flex-col">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm flex-1 p-5 sm:p-6 flex flex-col">
+                    <div class="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 flex-wrap gap-3">
+                        <div>
+                            <div class="flex items-center space-x-3 flex-wrap gap-y-1">
+                                <h2 id="calendar-month-year" class="text-xl font-bold text-slate-900 capitalize">Octubre 2026</h2>
+                                <span id="month-published-badge" class="inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                    <i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Abierto para reservas
+                                </span>
 
-                <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col justify-between">
-                    <div>
-                        <div class="flex justify-between items-center mb-3">
-                            <h3 class="text-sm font-bold text-slate-900">Fechas Seleccionadas</h3>
-                            <span id="selected-count-badge" class="text-xs font-semibold px-2 py-0.5 bg-slate-100 rounded-md text-slate-600">0 / 2</span>
+                                <div id="admin-month-selector-container" class="hidden items-center space-x-2">
+                                    <select id="admin-month-select" onchange="handleAdminMonthChange(this.value)" class="bg-amber-50 border border-amber-300 text-amber-900 font-semibold text-xs rounded-xl px-2.5 py-1 focus:ring-2 focus:ring-amber-500 cursor-pointer shadow-sm">
+                                        <option value="2026-08">Agosto 2026</option>
+                                        <option value="2026-09">Septiembre 2026</option>
+                                        <option value="2026-10">Octubre 2026</option>
+                                        <option value="2026-11">Noviembre 2026</option>
+                                        <option value="2026-12">Diciembre 2026</option>
+                                        <option value="2027-01">Enero 2027</option>
+                                        <option value="2027-02">Febrero 2027</option>
+                                        <option value="2027-03">Marzo 2027</option>
+                                        <option value="2027-04">Abril 2027</option>
+                                        <option value="2027-05">Mayo 2027</option>
+                                        <option value="2027-06">Junio 2027</option>
+                                        <option value="2027-07">Julio 2027</option>
+                                    </select>
+                                    <button id="btn-toggle-month-publish" onclick="toggleCurrentMonthPublished()" class="text-xs font-bold px-3 py-1 rounded-xl shadow-sm border transition-colors flex items-center space-x-1">
+                                        <i class="fa-solid fa-eye mr-1"></i>
+                                        <span id="label-toggle-month-publish">Publicar Mes</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <p id="admin-mode-indicator" class="text-xs font-semibold text-amber-700 hidden mt-1 flex items-center">
+                                <i class="fa-solid fa-triangle-exclamation mr-1"></i> Modo Administradora Activo.
+                            </p>
                         </div>
-                        <div id="selected-dates-list" class="space-y-2 mb-4">
-                            <p class="text-xs text-slate-400 text-center py-4 italic">Selecciona fechas en el calendario.</p>
+
+                        <div class="flex items-center space-x-2">
+                            <button onclick="changeMonth(-1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"><i class="fa-solid fa-chevron-left"></i></button>
+                            <button onclick="goToCurrentMonth()" class="text-xs font-semibold px-3 py-1.5 hover:bg-slate-100 rounded-lg text-slate-600 border border-slate-200">Hoy</button>
+                            <button onclick="changeMonth(1)" class="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors"><i class="fa-solid fa-chevron-right"></i></button>
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button onclick="clearSelectedDates()" class="flex-1 px-3 py-2 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold hover:bg-slate-50">Limpiar</button>
-                        <button id="btn-confirm-reservation" onclick="submitReservation()" disabled class="flex-1 px-3 py-2 bg-emerald-600 text-white rounded-xl text-xs font-semibold shadow-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed">Confirmar</button>
+
+                    <div id="unpublished-month-banner" class="hidden mb-4 p-3 bg-slate-100 border border-slate-300 rounded-xl text-slate-700 text-xs flex items-center justify-between">
+                        <div class="flex items-center space-x-2">
+                            <i class="fa-solid fa-lock text-slate-500 text-base"></i>
+                            <span><strong>Mes no publicado:</strong> La administración aún no ha abierto este mes.</span>
+                        </div>
                     </div>
+
+                    <div class="grid calendar-grid text-center font-bold text-xs text-slate-400 uppercase tracking-wider mb-2">
+                        <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div class="text-slate-300">Sáb</div><div class="text-slate-300">Dom</div>
+                    </div>
+
+                    <div id="calendar-days" class="grid calendar-grid gap-1.5 sm:gap-2 flex-1"></div>
                 </div>
             </div>
-        </main>
-    </div>
+        </div>
+    </main>
 
-    <!-- MODALES Y ALERTAS -->
-    <!-- Modal de Bienvenida -->
-    <div id="welcome-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
-            <h2 class="text-lg font-black text-slate-900 mb-1">Identificación del Centro</h2>
-            <p class="text-xs text-slate-500 mb-4">Introduce tus datos para acceder al sistema.</p>
-            <form id="welcome-form" onsubmit="handleStartApp(event)" class="space-y-3">
+    <!-- MODALES DE ADMINISTRACIÓN -->
+    <div id="password-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[60] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 relative">
+            <button onclick="closePasswordModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="text-center mb-5">
+                <div class="inline-flex items-center justify-center w-12 h-12 bg-amber-100 text-amber-700 rounded-2xl mb-3 border border-amber-200"><i class="fa-solid fa-key text-xl"></i></div>
+                <h3 class="text-lg font-bold text-slate-900">Acceso Protegido</h3>
+            </div>
+            <form onsubmit="handlePasswordSubmit(event)" class="space-y-4">
                 <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Código de Centro (8 dígitos, empieza por 47)</label>
-                    <input type="text" id="input-code" required oninput="validateCodeInput(this)" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Ej: 47001234">
-                    <p id="code-error" class="hidden text-[10px] text-red-600 mt-1">Debe empezar por 47 y tener exactamente 8 dígitos numéricos.</p>
+                    <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">Contraseña de Administración</label>
+                    <input type="password" id="input-admin-password" placeholder="••••••••" required class="w-full px-4 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-500 text-slate-900 text-sm">
+                    <p id="password-error" class="text-xs text-red-600 mt-1 hidden flex items-center"><i class="fa-solid fa-circle-exclamation mr-1"></i> Contraseña incorrecta.</p>
                 </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Nombre del Centro</label>
-                    <input type="text" id="input-name" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Ej: CEIP Ejemplo">
+                <div class="flex space-x-2 pt-2">
+                    <button type="button" onclick="closePasswordModal()" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl">Cancelar</button>
+                    <button type="submit" class="w-1/2 py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-xl shadow">Acceder</button>
                 </div>
-                <div>
-                    <label class="block text-[11px] font-bold text-slate-700 uppercase mb-1">Número de Docentes</label>
-                    <input type="number" id="input-teachers" min="1" required class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:ring-2 focus:ring-brand-500 focus:outline-none" placeholder="Ej: 12">
-                </div>
-                <button type="submit" class="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition-colors shadow-lg">Acceder al Sistema</button>
             </form>
         </div>
     </div>
 
-    <!-- Modal de Contraseña de Admin -->
-    <div id="password-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl border border-slate-100">
-            <h2 class="text-base font-bold text-slate-900 mb-1">Acceso de Administrador</h2>
-            <form onsubmit="handlePasswordSubmit(event)" class="space-y-3 mt-3">
-                <input type="password" id="input-admin-password" placeholder="Contraseña" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs focus:outline-none">
-                <p id="password-error" class="hidden text-[10px] text-red-600">Contraseña incorrecta.</p>
-                <div class="flex space-x-2">
-                    <button type="button" onclick="closePasswordModal()" class="flex-1 py-2 border rounded-xl text-xs">Cancelar</button>
-                    <button type="submit" class="flex-1 py-2 bg-amber-600 text-white rounded-xl text-xs font-bold">Entrar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal de Confirmación -->
-    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-3xl max-w-sm w-full p-6 shadow-2xl">
-            <h3 id="confirm-modal-title" class="text-base font-bold text-slate-900 mb-1">Confirmar</h3>
-            <p id="confirm-modal-text" class="text-xs text-slate-600 mb-4">¿Estás seguro?</p>
-            <div class="flex space-x-2">
-                <button onclick="closeConfirmModal()" class="flex-1 py-2 border rounded-xl text-xs">Cancelar</button>
-                <button id="btn-confirm-action" class="flex-1 py-2 bg-red-600 text-white rounded-xl text-xs font-bold">Aceptar</button>
+    <div id="confirm-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-[70] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-sm w-full p-6 relative">
+            <div class="text-center mb-5">
+                <h3 id="confirm-modal-title" class="text-lg font-bold text-slate-900">¿Confirmar acción?</h3>
+                <p id="confirm-modal-text" class="text-xs text-slate-600 mt-2 leading-relaxed"></p>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button type="button" onclick="closeConfirmModal()" class="w-1/2 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl">Cancelar</button>
+                <button type="button" id="btn-confirm-action" class="w-1/2 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow">Aceptar</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal de Gestión de Día -->
-    <div id="day-admin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl">
-            <h3 id="day-admin-modal-title" class="text-base font-bold text-slate-900 mb-3">Gestión de Día</h3>
-            <div id="day-admin-requests-list" class="space-y-2 mb-4 max-h-48 overflow-y-auto"></div>
-            <button onclick="closeDayAdminModal()" class="w-full py-2 bg-slate-900 text-white rounded-xl text-xs font-bold">Cerrar</button>
+    <div id="day-admin-modal" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-md w-full p-6 relative">
+            <button onclick="closeDayAdminModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            <div class="text-center mb-4">
+                <h3 id="day-admin-modal-title" class="text-lg font-bold text-slate-900">Gestión del Día</h3>
+                <p id="day-admin-modal-subtitle" class="text-xs text-slate-500"></p>
+            </div>
+            <div id="day-admin-block-container" class="mb-4 p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between">
+                <span id="day-admin-block-status" class="text-xs font-semibold text-slate-700">Estado</span>
+                <button id="btn-toggle-day-block" onclick="toggleBlockFromDayModal()" class="px-3 py-1.5 text-xs font-semibold rounded-lg shadow-sm transition-colors flex items-center space-x-1">
+                    <span id="btn-toggle-day-block-label">Bloquear</span>
+                </button>
+            </div>
+            <div class="space-y-3">
+                <h4 class="font-bold text-xs text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                    <span>Solicitudes Registradas</span>
+                    <span id="day-admin-count-badge" class="bg-amber-100 text-amber-800 text-[11px] px-2 py-0.5 rounded-full font-bold">0</span>
+                </h4>
+                <div id="day-admin-requests-list" class="max-h-60 overflow-y-auto space-y-2 pr-1"></div>
+            </div>
+            <div class="mt-5 pt-3 border-t border-slate-100 flex justify-end">
+                <button onclick="closeDayAdminModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs rounded-xl">Cerrar</button>
+            </div>
         </div>
     </div>
 
-    <!-- Contenedor de Notificaciones Toast -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50 space-y-2 pointer-events-none"></div>
+    <div id="admin-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-900">Panel de Administración de Escuela 4.0</h3>
+                <button onclick="closeAdminModal()" class="text-slate-400 hover:text-slate-600 p-2 rounded-lg"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1 space-y-6">
+                <div class="bg-amber-50/70 p-4 rounded-xl border border-amber-200 space-y-3">
+                    <h4 class="font-bold text-amber-900 text-sm">Publicación Gradual de Meses</h4>
+                    <div id="admin-months-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 pt-1"></div>
+                </div>
+                <div class="flex flex-wrap items-center justify-between gap-3 bg-brand-50 p-4 rounded-xl border border-brand-100">
+                    <div class="flex items-center space-x-2 flex-wrap gap-2">
+                        <button onclick="refreshAndSaveAdminChanges()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl">Guardar y Refrescar</button>
+                        <button onclick="openHistoryModal()" class="bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl">Registro Histórico</button>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="font-bold text-slate-800 text-sm mb-3">Solicitudes Registradas</h4>
+                    <div class="border border-slate-200 rounded-xl overflow-hidden shadow-sm">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr class="bg-slate-100 text-slate-600 font-semibold border-b border-slate-200">
+                                    <th class="p-3">Código</th><th class="p-3">Centro</th><th class="p-3">Profesorado</th><th class="p-3">Fechas</th><th class="p-3 text-right">Registro</th><th class="p-3 text-center">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-table-body" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <!-- JAVASCRIPT CON SUPABASE Y TIEMPO REAL -->
+    <div id="history-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden">
+            <div class="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+                <h3 class="font-bold text-slate-900">Registro Histórico Permanente</h3>
+                <button onclick="closeHistoryModal()" class="text-slate-400 hover:text-slate-600 p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-1">
+                <table class="w-full text-left border-collapse text-xs">
+                    <thead><tr class="bg-slate-100 text-slate-600 font-semibold"><th>Código</th><th>Centro</th><th>Docentes</th><th>Fechas</th><th>Estado</th></tr></thead>
+                    <tbody id="history-table-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT & SUPABASE INTEGRATION -->
     <script>
-        const SUPABASE_URL = 'https://tkklbfmfybdtkntasaqp.supabase.co';
-        const SUPABASE_ANON_KEY = 'sb_publishable_sOLd8lotxVjh7rs-vch2Rw_xHd6Db5W';
+        // ¡REEMPLAZA ESTOS DOS DATOS CON LOS DE TU PROYECTO DE SUPABASE!
+        const SUPABASE_URL = 'TUS_DATOS_DE_SUPABASE_URL';
+        const SUPABASE_ANON_KEY = 'TUS_DATOS_DE_SUPABASE_ANON_KEY';
+
         const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const ADMIN_PASSWORD = "patatitas";
+        const ACADEMIC_MONTHS = [
+            { key: '2026-08', label: 'Agosto 2026' }, { key: '2026-09', label: 'Septiembre 2026' },
+            { key: '2026-10', label: 'Octubre 2026' }, { key: '2026-11', label: 'Noviembre 2026' },
+            { key: '2026-12', label: 'Diciembre 2026' }, { key: '2027-01', label: 'Enero 2027' },
+            { key: '2027-02', label: 'Febrero 2027' }, { key: '2027-03', label: 'Marzo 2027' },
+            { key: '2027-04', label: 'Abril 2027' }, { key: '2027-05', label: 'Mayo 2027' },
+            { key: '2027-06', label: 'Junio 2027' }, { key: '2027-07', label: 'Julio 2027' }
+        ];
 
         const state = {
             currentUser: null,
@@ -207,29 +494,17 @@
                     reservations: state.reservations,
                     historicalLog: state.historicalLog
                 };
-                const { error } = await supabaseClient
-                    .from('app_state')
-                    .upsert({ key: 'main_config', value: stateData });
-
+                const { error } = await supabaseClient.from('app_state').upsert({ key: 'main_config', value: stateData });
                 if (error) console.error('Error al guardar en Supabase:', error);
             } catch (e) {
-                console.warn('Error de conexión con la nube', e);
+                console.warn('Error de red al guardar en la nube', e);
             }
         }
 
         async function loadStateFromStorage() {
             try {
-                const { data, error } = await supabaseClient
-                    .from('app_state')
-                    .select('value')
-                    .eq('key', 'main_config')
-                    .single();
-
-                if (error && error.code !== 'PGRST116') {
-                    console.error('Error al cargar de Supabase:', error);
-                    return;
-                }
-
+                const { data, error } = await supabaseClient.from('app_state').select('value').eq('key', 'main_config').single();
+                if (error && error.code !== 'PGRST116') return;
                 if (data && data.value) {
                     const saved = data.value;
                     if (saved.blockedDates) state.blockedDates = new Set(saved.blockedDates);
@@ -238,23 +513,8 @@
                     if (saved.historicalLog) state.historicalLog = saved.historicalLog;
                 }
             } catch (e) {
-                console.warn('No se pudo conectar con Supabase, usando valores por defecto', e);
+                console.warn('No se pudo cargar desde la nube', e);
             }
-        }
-
-        // SINCRONIZACIÓN AUTOMÁTICA EN TIEMPO REAL
-        function setupRealtimeSync() {
-            supabaseClient
-                .channel('public:app_state')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'app_state' }, async (payload) => {
-                    console.log('Cambio detectado en otro dispositivo, actualizando...');
-                    await loadStateFromStorage();
-                    renderCalendar();
-                    updateSelectedDatesList();
-                    if (state.currentUser) updateCurrentUserStatusPill();
-                    showToast('Datos sincronizados desde la nube', 'info');
-                })
-                .subscribe();
         }
 
         function requireAdminAuth(callback) {
@@ -262,85 +522,54 @@
                 state.isAdminMode = true;
                 callback();
             } else {
-                state.pendingAuthCallback = () => {
-                    state.isAdminMode = true;
-                    callback();
-                };
+                state.pendingAuthCallback = () => { state.isAdminMode = true; callback(); };
                 document.getElementById('input-admin-password').value = '';
                 document.getElementById('password-error').classList.add('hidden');
                 document.getElementById('password-modal').classList.remove('hidden');
-                setTimeout(() => document.getElementById('input-admin-password').focus(), 100);
             }
         }
 
         function handlePasswordSubmit(event) {
             event.preventDefault();
-            const passwordInput = document.getElementById('input-admin-password').value.trim();
-            if (passwordInput === ADMIN_PASSWORD) {
+            if (document.getElementById('input-admin-password').value.trim() === ADMIN_PASSWORD) {
                 state.isAdminAuthenticated = true;
                 state.isAdminMode = true;
                 closePasswordModal();
                 showToast('Acceso de administración autorizado', 'success');
-                if (state.pendingAuthCallback) {
-                    const cb = state.pendingAuthCallback;
-                    state.pendingAuthCallback = null;
-                    cb();
-                }
+                if (state.pendingAuthCallback) { const cb = state.pendingAuthCallback; state.pendingAuthCallback = null; cb(); }
             } else {
                 document.getElementById('password-error').classList.remove('hidden');
             }
         }
 
-        function closePasswordModal() {
-            document.getElementById('password-modal').classList.add('hidden');
-        }
+        function closePasswordModal() { document.getElementById('password-modal').classList.add('hidden'); }
 
         function showToast(message, type = 'info') {
             const container = document.getElementById('toast-container');
             if (!container) return;
             const toast = document.createElement('div');
-            let bgClasses = 'bg-slate-800 text-white';
-            let iconClass = 'fa-circle-info';
-
-            if (type === 'success') { bgClasses = 'bg-emerald-600 text-white'; iconClass = 'fa-circle-check'; }
-            else if (type === 'error') { bgClasses = 'bg-red-600 text-white'; iconClass = 'fa-circle-xmark'; }
-            else if (type === 'warning') { bgClasses = 'bg-amber-600 text-white'; iconClass = 'fa-triangle-exclamation'; }
-
-            toast.className = `p-3.5 rounded-xl shadow-xl flex items-start space-x-2.5 text-xs font-medium transition-all transform translate-y-2 opacity-0 pointer-events-auto ${bgClasses}`;
-            toast.innerHTML = `<i class="fa-solid ${iconClass} text-sm mt-0.5"></i><span class="flex-1">${message}</span>`;
+            let bg = type === 'success' ? 'bg-emerald-600 text-white' : type === 'error' ? 'bg-red-600 text-white' : 'bg-slate-800 text-white';
+            toast.className = `p-3.5 rounded-xl shadow-xl flex items-center space-x-2 text-xs font-medium transition-all ${bg}`;
+            toast.innerHTML = `<span class="flex-1">${message}</span>`;
             container.appendChild(toast);
-            setTimeout(() => toast.classList.remove('translate-y-2', 'opacity-0'), 10);
-            setTimeout(() => { toast.classList.add('opacity-0', 'translate-y-2'); setTimeout(() => toast.remove(), 300); }, 3500);
+            setTimeout(() => toast.remove(), 3500);
         }
 
         function showConfirmModal(title, text, onConfirm) {
             document.getElementById('confirm-modal-title').textContent = title;
             document.getElementById('confirm-modal-text').textContent = text;
             state.pendingConfirmCallback = onConfirm;
-            document.getElementById('btn-confirm-action').onclick = function() {
-                closeConfirmModal();
-                if (state.pendingConfirmCallback) {
-                    const cb = state.pendingConfirmCallback;
-                    state.pendingConfirmCallback = null;
-                    cb();
-                }
-            };
+            document.getElementById('btn-confirm-action').onclick = () => { closeConfirmModal(); if(state.pendingConfirmCallback) state.pendingConfirmCallback(); };
             document.getElementById('confirm-modal').classList.remove('hidden');
         }
 
-        function closeConfirmModal() {
-            document.getElementById('confirm-modal').classList.add('hidden');
-            state.pendingConfirmCallback = null;
-        }
+        function closeConfirmModal() { document.getElementById('confirm-modal').classList.add('hidden'); }
 
         function validateCodeInput(input) {
             const val = input.value;
-            const errorEl = document.getElementById('code-error');
-            if (val.length > 0 && (!val.startsWith('47') || val.length !== 8 || isNaN(val))) {
-                errorEl.classList.remove('hidden');
-            } else {
-                errorEl.classList.add('hidden');
-            }
+            const err = document.getElementById('code-error');
+            if (val.length > 0 && (!val.startsWith('47') || val.length !== 8 || isNaN(val))) err.classList.remove('hidden');
+            else err.classList.add('hidden');
         }
 
         function handleStartApp(event) {
@@ -350,7 +579,7 @@
             const teachers = document.getElementById('input-teachers').value.trim();
 
             if (!code.startsWith('47') || code.length !== 8 || isNaN(code)) {
-                showToast('El código de centro debe tener 8 dígitos y comenzar por 47.', 'error');
+                showToast('El código debe tener 8 dígitos y empezar por 47.', 'error');
                 return;
             }
 
@@ -360,7 +589,6 @@
             document.getElementById('header-user-badge').classList.add('flex');
             document.getElementById('badge-school-name').textContent = name;
             document.getElementById('badge-school-code').textContent = code;
-
             document.getElementById('display-center-name').textContent = name;
             document.getElementById('display-center-code').textContent = code;
             document.getElementById('display-center-teachers').textContent = teachers + ' docentes';
@@ -372,221 +600,128 @@
         }
 
         function switchCenter() {
-            showConfirmModal('Cambiar de Centro', '¿Deseas salir para introducir los datos de otro centro?', () => {
-                state.currentUser = null;
-                state.selectedDates = [];
-                document.getElementById('welcome-form').reset();
-                document.getElementById('header-user-badge').classList.add('hidden');
-                document.getElementById('welcome-modal').classList.remove('hidden');
-                renderCalendar();
-                updateSelectedDatesList();
-            });
+            state.currentUser = null;
+            state.selectedDates = [];
+            document.getElementById('welcome-form').reset();
+            document.getElementById('header-user-badge').classList.add('hidden');
+            document.getElementById('welcome-modal').classList.remove('hidden');
+            renderCalendar();
+            updateSelectedDatesList();
         }
 
-        function formatDateIso(year, monthIndex, day) {
-            return `${year}-${String(monthIndex + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        }
-
-        function formatDateSpanish(dateStr) {
-            const parts = dateStr.split('-');
-            return parts.length !== 3 ? dateStr : `${parts[2]}/${parts[1]}/${parts[0]}`;
-        }
-
-        function formatDateSpanishLong(dateStr) {
-            const [y, m, d] = dateStr.split('-').map(Number);
-            return new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
-        }
-
-        function getMonthKey(dateObj) {
-            return `${dateObj.getFullYear()}-${String(dateObj.getMonth() + 1).padStart(2, '0')}`;
-        }
-
-        function getExistingDatesForCode(code) {
-            let dates = [];
-            state.reservations.forEach(res => { if (res.code === code) dates.push(...res.dates); });
-            return dates;
-        }
-
-        function getReservationsForDate(dateStr) {
-            return state.reservations.filter(res => res.dates.includes(dateStr));
-        }
+        function formatDateIso(y, m, d) { return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`; }
+        function formatDateSpanish(dateStr) { const p = dateStr.split('-'); return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : dateStr; }
+        function formatDateSpanishLong(dateStr) { const [y, m, d] = dateStr.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }); }
+        function getMonthKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; }
+        function getExistingDatesForCode(code) { return state.reservations.filter(r => r.code === code).flatMap(r => r.dates); }
+        function getReservationsForDate(dateStr) { return state.reservations.filter(r => r.dates.includes(dateStr)); }
 
         function renderCalendar() {
             const year = state.currentViewDate.getFullYear();
             const month = state.currentViewDate.getMonth();
             const monthKey = getMonthKey(state.currentViewDate);
-            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-            
-            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
             const isPublished = state.publishedMonths.has(monthKey);
-            const pubBadge = document.getElementById('month-published-badge');
-            const unpubBanner = document.getElementById('unpublished-month-banner');
 
-            if (isPublished) {
-                pubBadge.className = "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200";
-                pubBadge.innerHTML = `<i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Abierto para reservas`;
-                unpubBanner.classList.add('hidden');
-            } else {
-                pubBadge.className = "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700 border border-slate-300";
-                pubBadge.innerHTML = `<i class="fa-solid fa-eye-slash mr-1 text-[10px]"></i> Oculto / No publicado`;
-                if (!state.isAdminMode) unpubBanner.classList.remove('hidden');
-                else unpubBanner.classList.add('hidden');
-            }
+            const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+            document.getElementById('calendar-month-year').textContent = `${monthNames[month]} ${year}`;
 
-            const adminToggleBtn = document.getElementById('btn-admin-toggle');
+            document.getElementById('month-published-badge').className = isPublished ? "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800" : "inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full bg-slate-200 text-slate-700";
+            document.getElementById('month-published-badge').innerHTML = isPublished ? `<i class="fa-solid fa-circle-check mr-1 text-[10px]"></i> Abierto` : `<i class="fa-solid fa-eye-slash mr-1 text-[10px]"></i> Oculto`;
+            document.getElementById('unpublished-month-banner').classList.toggle('hidden', isPublished || state.isAdminMode);
+
+            const adminContainer = document.getElementById('admin-month-selector-container');
+            const adminIndicator = document.getElementById('admin-mode-indicator');
             if (state.isAdminMode) {
-                adminToggleBtn.className = "flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-amber-500 border-amber-600 text-white shadow-md";
+                adminContainer.classList.remove('hidden'); adminContainer.classList.add('flex');
+                adminIndicator.classList.remove('hidden');
+                document.getElementById('admin-month-select').value = monthKey;
+                document.getElementById('label-toggle-month-publish').textContent = isPublished ? "Ocultar Mes" : "Publicar Mes";
             } else {
-                adminToggleBtn.className = "flex items-center space-x-2 text-xs font-semibold px-3 py-1.5 rounded-lg border bg-slate-100 border-slate-300 text-slate-700";
+                adminContainer.classList.add('hidden'); adminIndicator.classList.add('hidden');
             }
 
             const container = document.getElementById('calendar-days');
             container.innerHTML = '';
-            let startingDay = new Date(year, month, 1).getDay() - 1;
-            if (startingDay === -1) startingDay = 6;
-            const totalDaysInMonth = new Date(year, month + 1, 0).getDate();
+            const firstDay = new Date(year, month, 1);
+            let startingDay = firstDay.getDay() - 1; if (startingDay === -1) startingDay = 6;
+            const totalDays = new Date(year, month + 1, 0).getDate();
 
             for (let i = 0; i < startingDay; i++) {
-                const emptyCell = document.createElement('div');
-                emptyCell.className = 'bg-slate-50/50 rounded-xl border border-slate-100/50 min-h-[70px] sm:min-h-[85px]';
-                container.appendChild(emptyCell);
+                container.appendChild(Object.assign(document.createElement('div'), { className: 'bg-slate-50/50 rounded-xl min-h-[70px]' }));
             }
 
-            for (let day = 1; day <= totalDaysInMonth; day++) {
+            for (let day = 1; day <= totalDays; day++) {
                 const dateStr = formatDateIso(year, month, day);
-                const dayDate = new Date(year, month, day);
-                const dayOfWeek = dayDate.getDay();
-                const isWeekend = (dayOfWeek === 0 || dayOfWeek === 6);
+                const isWeekend = ([0, 6].includes(new Date(year, month, day).getDay()));
                 const isBlocked = state.blockedDates.has(dateStr);
                 const isSelected = state.selectedDates.includes(dateStr);
                 const requests = getReservationsForDate(dateStr);
 
                 const cell = document.createElement('div');
-                let cellClasses = 'rounded-xl p-2 min-h-[70px] sm:min-h-[85px] border flex flex-col justify-between transition-all relative cursor-pointer select-none ';
-
+                let cls = 'rounded-xl p-2 min-h-[70px] border flex flex-col justify-between transition-all cursor-pointer ';
                 if (state.isAdminMode) {
-                    cellClasses += isBlocked ? 'bg-red-100 border-red-300 text-red-900' : (isWeekend ? 'bg-slate-100 border-slate-200 text-slate-400' : 'bg-white border-slate-200 hover:bg-amber-50/30');
+                    cls += isBlocked ? 'bg-red-100 border-red-300 text-red-900' : isWeekend ? 'bg-slate-100 text-slate-400' : 'bg-white border-slate-200';
                 } else {
-                    cellClasses += isSelected ? 'bg-emerald-500 border-emerald-600 text-white shadow-md' : (isBlocked || isWeekend || !isPublished ? 'bg-slate-100/70 border-slate-200 text-slate-400 opacity-80 cursor-not-allowed' : (requests.length > 0 ? 'bg-amber-50/80 border-amber-300 text-slate-800' : 'bg-white border-slate-200'));
+                    cls += isSelected ? 'bg-emerald-500 text-white border-emerald-600' : isBlocked || isWeekend || !isPublished ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-800 border-slate-200';
                 }
-
-                cell.className = cellClasses;
+                cell.className = cls;
                 cell.onclick = () => handleDayClick(dateStr, isWeekend, isBlocked, isPublished);
 
-                let cellInner = `<div class="flex items-center justify-between"><span class="font-bold text-xs sm:text-sm ${isSelected ? 'text-white' : 'text-slate-800'}">${day}</span>`;
-                if (isBlocked) cellInner += `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-red-200 text-red-800"><i class="fa-solid fa-lock text-[9px]"></i></span>`;
-                cellInner += `</div><div class="mt-1 space-y-1">`;
-                if (isSelected) cellInner += `<div class="bg-emerald-700/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">Seleccionado</div>`;
-                if (requests.length > 0) cellInner += `<button type="button" onclick="event.stopPropagation(); protectedShowRequests('${dateStr}')" class="w-full text-left bg-amber-200 text-amber-900 font-bold text-[10px] px-1.5 py-1 rounded">Solicitado (${requests.length})</button>`;
-                cellInner += `</div>`;
-                cell.innerHTML = cellInner;
+                let inner = `<div class="flex justify-between items-center"><span class="font-bold text-xs">${day}</span>`;
+                if (isBlocked) inner += `<span class="text-[10px]"><i class="fa-solid fa-lock"></i></span>`;
+                inner += `</div><div class="mt-1 space-y-1">`;
+                if (isSelected) inner += `<div class="bg-emerald-700/60 text-[10px] px-1 rounded text-white">Seleccionado</div>`;
+                if (requests.length > 0) inner += `<button onclick="event.stopPropagation(); protectedShowRequests('${dateStr}')" class="w-full text-left bg-amber-200 text-amber-900 text-[10px] px-1 rounded font-bold">Solicitado (${requests.length})</button>`;
+                inner += `</div>`;
+                cell.innerHTML = inner;
                 container.appendChild(cell);
             }
         }
 
-        function handleDayClick(dateString, isWeekend, isBlocked, isPublished) {
+        function handleDayClick(dateStr, isWeekend, isBlocked, isPublished) {
             if (state.isAdminMode) {
-                if (getReservationsForDate(dateString).length > 0) openDayAdminModal(dateString);
+                if (getReservationsForDate(dateStr).length > 0) openDayAdminModal(dateStr);
                 else {
-                    if (state.blockedDates.has(dateString)) state.blockedDates.delete(dateString);
-                    else state.blockedDates.add(dateString);
-                    saveStateToStorage();
-                    renderCalendar();
+                    if (state.blockedDates.has(dateStr)) state.blockedDates.delete(dateStr); else state.blockedDates.add(dateStr);
+                    saveStateToStorage(); renderCalendar();
                 }
                 return;
             }
-            if (isWeekend || !isPublished || isBlocked) return;
-            toggleSelectedDate(dateString);
-        }
-
-        async function removeDateFromReservation(reservationId, dateStr) {
-            if (!state.isAdminMode) { requireAdminAuth(() => removeDateFromReservation(reservationId, dateStr)); return; }
-            const reservation = state.reservations.find(r => r.id === reservationId);
-            if (!reservation) return;
-            reservation.dates = reservation.dates.filter(d => d !== dateStr);
-            if (reservation.dates.length === 0) state.reservations = state.reservations.filter(r => r.id !== reservationId);
-            await saveStateToStorage();
-            updateCurrentUserStatusPill();
-            renderCalendar();
-            updateSelectedDatesList();
-            showToast(`Fecha eliminada.`, 'success');
-        }
-
-        function updateCurrentUserStatusPill() {
-            if (!state.currentUser) return;
-            const existingDates = getExistingDatesForCode(state.currentUser.code);
-            const statusPill = document.getElementById('status-pill');
-            const confirmedContainer = document.getElementById('confirmed-dates-container');
-            const confirmedList = document.getElementById('confirmed-dates-list');
-
-            if (existingDates.length > 0) {
-                statusPill.textContent = 'Solicitud Registrada';
-                statusPill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200';
-                confirmedContainer.classList.remove('hidden');
-                confirmedList.innerHTML = '';
-                existingDates.forEach(dateStr => {
-                    const item = document.createElement('div');
-                    item.className = 'flex items-center justify-between p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-900 font-medium';
-                    item.innerHTML = `<span>${formatDateSpanishLong(dateStr)}</span>`;
-                    confirmedList.appendChild(item);
-                });
-            } else {
-                statusPill.textContent = 'Pendiente';
-                statusPill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 border border-amber-200';
-                confirmedContainer.classList.add('hidden');
-            }
-        }
-
-        function openDayAdminModal(dateStr) {
-            state.currentAdminDate = dateStr;
-            const requests = getReservationsForDate(dateStr);
-            const listEl = document.getElementById('day-admin-requests-list');
-            document.getElementById('day-admin-modal-title').textContent = `Gestión: ${formatDateSpanish(dateStr)}`;
-            listEl.innerHTML = '';
-            requests.forEach(req => {
-                listEl.innerHTML += `<div class="p-3 bg-amber-50 border rounded-xl text-xs flex justify-between items-center"><div><b>${req.name}</b><br>${req.teachers} docentes</div><button onclick="removeDateFromReservation('${req.id}', '${dateStr}')" class="bg-red-600 text-white px-2 py-1 rounded">Eliminar</button></div>`;
-            });
-            document.getElementById('day-admin-modal').classList.remove('hidden');
-        }
-
-        function closeDayAdminModal() { document.getElementById('day-admin-modal').classList.add('hidden'); }
-
-        function handleAdminToggleClick() {
-            if (state.isAdminMode) {
-                state.isAdminMode = false;
-                renderCalendar();
-            } else {
-                requireAdminAuth(() => renderCalendar());
-            }
-        }
-
-        function toggleSelectedDate(dateStr) {
-            const index = state.selectedDates.indexOf(dateStr);
-            if (index !== -1) state.selectedDates.splice(index, 1);
+            if (isWeekend || isBlocked || !isPublished) return;
+            const idx = state.selectedDates.indexOf(dateStr);
+            if (idx !== -1) state.selectedDates.splice(idx, 1);
             else {
                 if (state.selectedDates.length >= 2) { showToast('Máximo 2 días.', 'warning'); return; }
-                state.selectedDates.push(dateStr);
-                state.selectedDates.sort();
+                if (state.selectedDates.length === 1 && Math.abs(new Date(dateStr) - new Date(state.selectedDates[0])) / (1000*60*60*24) < 7) {
+                    showToast('Debe haber al menos 7 días de diferencia.', 'error'); return;
+                }
+                state.selectedDates.push(dateStr); state.selectedDates.sort();
             }
-            updateSelectedDatesList();
-            renderCalendar();
+            updateSelectedDatesList(); renderCalendar();
         }
 
         function updateSelectedDatesList() {
-            const listEl = document.getElementById('selected-dates-list');
+            const list = document.getElementById('selected-dates-list');
             const count = state.selectedDates.length;
             document.getElementById('selected-count-badge').textContent = `${count} / 2`;
             document.getElementById('btn-confirm-reservation').disabled = count === 0 || !state.currentUser;
-            listEl.innerHTML = count === 0 ? '<p class="text-xs text-slate-400 text-center py-4 italic">Selecciona fechas en el calendario.</p>' : '';
-            state.selectedDates.forEach((dateStr) => {
-                listEl.innerHTML += `<div class="flex items-center justify-between p-2.5 bg-slate-50 border rounded-xl text-xs font-semibold text-slate-900"><span>${formatDateSpanishLong(dateStr)}</span></div>`;
+            document.getElementById('btn-clear-selection').classList.toggle('hidden', count === 0);
+            list.innerHTML = count === 0 ? '<p class="text-xs text-slate-400 text-center py-4 italic">Haz clic en las fechas.</p>' : '';
+            state.selectedDates.forEach((d, i) => {
+                list.innerHTML += `<div class="flex justify-between p-2 bg-brand-50 border border-brand-200 rounded-xl text-xs font-semibold text-brand-900"><span>${formatDateSpanishLong(d)}</span><button onclick="toggleSelectedDate('${d}')"><i class="fa-solid fa-xmark"></i></button></div>`;
             });
         }
 
+        function toggleSelectedDate(d) { state.selectedDates = state.selectedDates.filter(x => x !== d); updateSelectedDatesList(); renderCalendar(); }
         function clearSelectedDates() { state.selectedDates = []; updateSelectedDatesList(); renderCalendar(); }
 
+        // FUNCIÓN CLAVE MEZCLADA CON SUPABASE PARA SINCRONIZAR RESERVAS CONSECUTIVAS
         async function submitReservation() {
             if (!state.currentUser || state.selectedDates.length === 0) return;
+
+            // Descarga lo último de la nube antes de añadir para no pisar reservas simultáneas
+            await loadStateFromStorage();
+
             const newReservation = {
                 id: 'res_' + Date.now(),
                 code: state.currentUser.code,
@@ -595,27 +730,111 @@
                 dates: [...state.selectedDates],
                 timestamp: new Date().toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
             };
+
             state.reservations.push(newReservation);
             state.historicalLog.push({ ...newReservation, status: 'Activo', deletedAt: null });
 
             await saveStateToStorage();
+
             state.selectedDates = [];
             updateCurrentUserStatusPill();
             renderCalendar();
             updateSelectedDatesList();
-            showToast('¡Reserva confirmada en la nube!', 'success');
+            showToast('¡Reserva confirmada y sincronizada en la nube!', 'success');
         }
 
-        function protectedShowRequests(dateStr) { requireAdminAuth(() => openDayAdminModal(dateStr)); }
+        function updateCurrentUserStatusPill() {
+            if (!state.currentUser) return;
+            const dates = getExistingDatesForCode(state.currentUser.code);
+            const pill = document.getElementById('status-pill');
+            const container = document.getElementById('confirmed-dates-container');
+            const list = document.getElementById('confirmed-dates-list');
+            if (dates.length > 0) {
+                pill.textContent = 'Solicitud Registrada';
+                pill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800';
+                container.classList.remove('hidden');
+                list.innerHTML = '';
+                dates.forEach(d => { list.innerHTML += `<div class="p-2 bg-emerald-50 rounded-lg text-xs text-emerald-900 font-medium">${formatDateSpanishLong(d)}</div>`; });
+            } else {
+                pill.textContent = 'Pendiente';
+                pill.className = 'text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800';
+                container.classList.add('hidden');
+            }
+        }
+
+        function protectedShowRequests(d) { requireAdminAuth(() => openDayAdminModal(d)); }
+        function openDayAdminModal(d) {
+            state.currentAdminDate = d;
+            document.getElementById('day-admin-modal-title').textContent = `Día: ${formatDateSpanish(d)}`;
+            const list = document.getElementById('day-admin-requests-list');
+            list.innerHTML = '';
+            getReservationsForDate(d).forEach(r => {
+                list.innerHTML += `<div class="p-2 bg-amber-50 rounded text-xs"><b>${r.name}</b> (${r.code})<br><button onclick="removeDateFromReservation('${r.id}', '${d}')" class="text-red-600 underline mt-1">Eliminar fecha</button></div>`;
+            });
+            document.getElementById('day-admin-modal').classList.remove('hidden');
+        }
+        function closeDayAdminModal() { document.getElementById('day-admin-modal').classList.add('hidden'); }
+
+        async function removeDateFromReservation(id, d) {
+            if (!state.isAdminMode) { requireAdminAuth(() => removeDateFromReservation(id, d)); return; }
+            const res = state.reservations.find(r => r.id === id);
+            if (!res) return;
+            res.dates = res.dates.filter(x => x !== d);
+            if (res.dates.length === 0) state.reservations = state.reservations.filter(r => r.id !== id);
+            await saveStateToStorage();
+            renderCalendar(); updateCurrentUserStatusPill(); closeDayAdminModal();
+            showToast('Fecha eliminada por administración.', 'success');
+        }
+
+        function handleAdminToggleClick() {
+            if (state.isAdminMode) { state.isAdminMode = false; renderCalendar(); }
+            else requireAdminAuth(() => renderCalendar());
+        }
+
         function changeMonth(delta) { state.currentViewDate.setMonth(state.currentViewDate.getMonth() + delta); renderCalendar(); }
         function goToCurrentMonth() { state.currentViewDate = new Date(2026, 9, 1); renderCalendar(); }
+        function handleAdminMonthChange(val) { const [y, m] = val.split('-').map(Number); state.currentViewDate = new Date(y, m - 1, 1); renderCalendar(); }
+        
+        async function toggleCurrentMonthPublished() {
+            const k = getMonthKey(state.currentViewDate);
+            if (state.publishedMonths.has(k)) state.publishedMonths.delete(k); else state.publishedMonths.add(k);
+            await saveStateToStorage(); renderCalendar();
+        }
 
+        function protectedOpenAdminModal() { requireAdminAuth(() => { populateAdminTable(); document.getElementById('admin-modal').classList.remove('hidden'); }); }
+        function closeAdminModal() { document.getElementById('admin-modal').classList.add('hidden'); }
+
+        function populateAdminTable() {
+            const tbody = document.getElementById('admin-table-body');
+            tbody.innerHTML = state.reservations.length === 0 ? '<tr><td colspan="6" class="p-4 text-center text-slate-400">No hay solicitudes.</td></tr>' : '';
+            state.reservations.forEach(r => {
+                tbody.innerHTML += `<tr class="border-b"><td class="p-3 font-mono">${r.code}</td><td class="p-3">${r.name}</td><td class="p-3">${r.teachers}</td><td class="p-3">${r.dates.map(formatDateSpanish).join(', ')}</td><td class="p-3 text-right">${r.timestamp}</td><td class="p-3 text-center"><button onclick="deleteSingleReservation('${r.id}')" class="text-red-600"><i class="fa-solid fa-trash-can"></i></button></td></tr>`;
+            });
+        }
+
+        async function deleteSingleReservation(id) {
+            showConfirmModal('Eliminar', '¿Eliminar solicitud?', async () => {
+                state.reservations = state.reservations.filter(r => r.id !== id);
+                await saveStateToStorage(); populateAdminTable(); renderCalendar(); updateCurrentUserStatusPill();
+                showToast('Eliminado.', 'info');
+            });
+        }
+
+        function openHistoryModal() {
+            const tbody = document.getElementById('history-table-body');
+            tbody.innerHTML = '';
+            state.historicalLog.forEach(h => {
+                tbody.innerHTML += `<tr class="border-b"><td class="p-3 font-mono">${h.code}</td><td class="p-3">${h.name}</td><td class="p-3">${h.teachers}</td><td class="p-3">${h.dates.map(formatDateSpanish).join(', ')}</td><td class="p-3">${h.status}</td></tr>`;
+            });
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+        function closeHistoryModal() { document.getElementById('history-modal').classList.add('hidden'); }
+        async function refreshAndSaveAdminChanges() { await saveStateToStorage(); showToast('Guardado en la nube.', 'success'); }
+
+        // Inicialización cargando datos de Supabase de forma asíncrona
         window.onload = async function() {
             await loadStateFromStorage();
-            setupRealtimeSync(); 
-            
-            const welcomeForm = document.getElementById('welcome-form');
-            if (welcomeForm) welcomeForm.reset();
+            document.getElementById('welcome-form').reset();
             renderCalendar();
             updateSelectedDatesList();
         };
